@@ -559,6 +559,8 @@ async def say(message):
 
     global console #console superhack /say ../\'
     if txt[4:].startswith("'"):
+        if txt[5:].startswith("."):
+            kbdd = keyboard(keyboard(zen=True))
         console.keyboard = kbdd
         console.body()
 
