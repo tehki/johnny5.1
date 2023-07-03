@@ -19,7 +19,7 @@ import nest_asyncio
 nest_asyncio.apply()
 
 global johnny
-johnny = AsyncTeleBot (config.johnny_bot_token)
+johnny = AsyncTeleBot (config.johnny5_bot_token)
 johnny.parse_mode = None
 # johnny.parse_mode = "html"
 
