@@ -1,0 +1,8 @@
+openai
+pyTelegramBotAPI
+selenium
+python-binance
+nest-asyncio
+playwright
+
+# https://sites.google.com/chromium.org/driver/downloads installed ChromeDriver for the crawler bot

@@ -1,3 +1,16 @@
+# Ignore screenshots and media folders
+screenshots/
+vids/
+# Ignore build artifacts
+env/
+# Ignore log files
+*.log
+# Ignore env files
+*.env
+# Ignore configuration files with secrets
+config.py
+config.txt
+
 # Byte-compiled / optimized / DLL files
 __pycache__/
 *.py[cod]
