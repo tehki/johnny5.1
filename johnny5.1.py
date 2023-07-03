@@ -20,11 +20,11 @@ nest_asyncio.apply()
 
 global johnny
 johnny = AsyncTeleBot (config.johnny5_bot_token)
-johnny.parse_mode = None
-# johnny.parse_mode = "html"
+# johnny.parse_mode = None
+johnny.parse_mode = "html"
 
 global _debug
-_debug = True
+_debug = False
 
 global Chats, Users, Messages, Windows
 global system, process, console # type.Window
@@ -37,6 +37,22 @@ Chats = [] # types.Chat
 Users = [] # types.User
 Messages = [] # types.Message
 Windows = []
+
+def strip_html(text):
+    output = text
+    output = re.sub(r'<b>', '', output)
+    output = re.sub(r'</b>', '', output)
+    output = re.sub(r'<i>', '', output)
+    output = re.sub(r'</i>', '', output)
+    output = re.sub(r'<em>', '', output)
+    output = re.sub(r'</em>', '', output)
+    output = re.sub(r'<code>', '', output)
+    output = re.sub(r'</code>', '', output)
+    output = re.sub(r'<strong>', '', output)
+    output = re.sub(r'</strong>', '', output)
+    if output.endswith('\n'):
+        output = output.rstrip('\n')
+    return output
 
 class Window(types.Message):
 
@@ -137,22 +153,6 @@ class Window(types.Message):
                 "chatid": self.chat.id,
                 "text": self.text}
 
-    def strip_html(text):
-        output = text
-        output = re.sub(r'<b>', '', output)
-        output = re.sub(r'</b>', '', output)
-        output = re.sub(r'<i>', '', output)
-        output = re.sub(r'</i>', '', output)
-        output = re.sub(r'<em>', '', output)
-        output = re.sub(r'</em>', '', output)
-        output = re.sub(r'<code>', '', output)
-        output = re.sub(r'</code>', '', output)
-        output = re.sub(r'<strong>', '', output)
-        output = re.sub(r'</strong>', '', output)
-        if output.endswith('\n'):
-            output = output.rstrip('\n')
-        return output
-
     async def async_update(self):
         global system
         if self.message is not None:
@@ -170,7 +170,7 @@ class Window(types.Message):
                         print(f'sending edit_message_caption')
                     self.message = await self.bot.edit_message_caption(self.output, self.chat.id, self.message.id, parse_mode=self.parse_mode, reply_markup=keyboard)
             elif self.output != '':
-                if strip_html(self.message.text) != strip_html(output):
+                if strip_html(self.message.text) != strip_html(self.output):
                     keyboard = None if system._zen else self.keyboard
                     if (self._debug):
                         print(f'sending edit_message_text')
@@ -216,13 +216,12 @@ async def delete(message):
 async def update():
     global Windows, system
     if system._zen:
-        if system.photo != None: # TODO: Or .pic?
+        if system.photo != None:
             system.head(pics.zen)
         for window in Windows:
             window.zen()
     else:
         for window in Windows:
-            print(f"window {window.message.id} update")
             window.body()
 
 #TODO: "Object of type Window is not JSON serializable" for Windows
@@ -287,7 +286,7 @@ async def screenshots(message):
         system.body()
 
         await echo(message.text)
-        await delete(johnny, message)
+        await delete(message)
 
 import pics
 # /zen
@@ -303,7 +302,7 @@ async def zen(message):
 
     if message is not None:
         await echo(message.text)
-        await delete(johnny, message)
+        await delete(message)
 
 # /flower
 @johnny.message_handler(commands='flower')
@@ -316,7 +315,7 @@ async def flower(message):
         system.body()
     
     await echo(message.text)
-    await delete(johnny, message)
+    await delete(message)
 
 # /pic url
 @johnny.message_handler(commands='pic')
@@ -476,7 +475,7 @@ async def handle_callback(call):
         system.body('.', keyboard=keyboard(dot=True))
         console.body('/\\')
     if call.data == ('/'):
-        system.body('\n./\n/johnny\n/anime\n/windows\n/pictures\n/pic\n/pics\n/screenshots\n/scrns\n/msg\n/flower', keyboard=keyboard(roll=True))
+        system.body('\n./\n/johnny\n/windows\n/pictures\n/pic\n/pics\n/screenshots\n/scrns\n/msg\n/flower', keyboard=keyboard(roll=True))
         console.body('/')
     if call.data == '🎲':
         await roll (call.message)
@@ -539,12 +538,12 @@ async def listen(message):
     elif message.text == '/\\':
         system.body('.')
     elif message.text == '/':
-        system.body('\n./\n/johnny\n/anime\n/windows\n/pictures\n/pic\n/msg\n/flower') #TODO: To function >> call.data update
+        system.body('\n./\n/johnny\n/windows\n/pictures\n/pic\n/msg\n/flower') #TODO: To function >> call.data update
     elif message.text == '\/':
         await zen(None)
         system.body('\/')
     
-    print(f'>>> {message.text}')
+    print(f'>>> {message}')
     await echo(message.text)
     await delete(message)
 ###
