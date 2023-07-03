@@ -18,20 +18,17 @@ from typing import Dict, List, Optional, Union
 import nest_asyncio
 nest_asyncio.apply()
 
+global johnny
 johnny = AsyncTeleBot (config.johnny_bot_token)
+johnny.parse_mode = None
+# johnny.parse_mode = "html"
 
-# johnny.parse_mode = None
-johnny.parse_mode = "html"
-
-# johnny has chats and users.
 global Chats, Users, Messages, Windows
-global system, system_input # type.Window
-system = None
-system_input = None
+global system, process, console # type.Window
 
-global console, console_output # type.Window
+system = None
+process = None
 console = None
-console_output = None
 
 Chats = [] # types.Chat
 Users = [] # types.User
