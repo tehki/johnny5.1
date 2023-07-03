@@ -5,7 +5,6 @@ import io
 from telebot import types
 
 import re
-from playwright.sync_api import sync_playwright
 
 #telegram_bot_token = os.environ.get('sensei_bot_token')
 dad = telebot.TeleBot(config.dad_bot_token)
@@ -19,10 +18,12 @@ def create_button(emoji, text):
     return types.InlineKeyboardButton(text=f'{emoji} {text}', callback_data=f'{emoji}')
 
 # Create a default keyboard
-def keyboard(hi=False, ok=False, peace=False, dice=False):
+def keyboard(hi=False, ok=False, peace=False, dice=False, run=False):
     # Create an inline keyboard
     keyboard = types.InlineKeyboardMarkup()
     # Adding buttons
+    if run:
+        keyboard.add(create_button('🏃', 'Утікай'))
     if hi:
         keyboard.add(create_button('👋', 'І тобі привіт! Так потихеньку, горизонтально'))
     if ok:
@@ -34,6 +35,45 @@ def keyboard(hi=False, ok=False, peace=False, dice=False):
     return keyboard
 
 import functions
+
+from playwright.sync_api import Playwright, sync_playwright, expect
+
+def visiting(page, screenshot_path, chat_id):
+    page.screenshot(path=screenshot_path)
+    with open(screenshot_path, 'rb') as photo:
+        dad.send_photo(chat_id, photo, f'{page.all_text_contents} @ {screenshot_path}')
+
+# /run 🏃
+@dad.message_handler(commands=['run'])
+def run(message: types.Message, playwright: Playwright = None) -> None:
+
+    screenshot_path = f'./screenshots/screen_'
+    if message is not None:
+        screenshot_path += f'#{message.chat.id}.{message.message_id}.png'
+
+    if playwright is None:
+        with sync_playwright() as playwright:
+            playwright = playwright
+
+    browser = playwright.chromium.launch(headless=False)
+    context = browser.new_context()
+    page = context.new_page()
+    page.goto("https://www.farandwide.com/s/the-worlds-most-peaceful-countries-936ebdfd97a94aa1")
+    
+    visiting(page.get_by_title("Austria"), screenshot_path, message.chat.id)
+    page.mouse.wheel(0, 20000)
+        
+    page.get_by_role("heading", name="28. Chile").click()
+    visiting(page.get_by_title("Chile"), screenshot_path, message.chat.id)
+
+
+    # download = download_info.value
+    # download_path = download.path()  # Get the path where the file is saved
+    # download.save_as(screenshot_path)  # Save the file to a specific location
+    context.close()
+    browser.close()
+    
+    
 # /roll 🎲
 @dad.message_handler(commands=['roll'])
 def roll(message):
@@ -42,13 +82,16 @@ def roll(message):
 # Buttons callback
 @dad.callback_query_handler(func=lambda call: True)
 def handle_callback(call):
+    if call.data == '🏃': # /run 🏃   
+        with sync_playwright() as playwright:
+            run(call.message, playwright=playwright)
     if call.data == '👋':
         dad.send_message(call.message.chat.id, '👌', reply_markup=keyboard(ok=True))
     if call.data == '👌':
         dad.reply_to(call.message, '✌ До нових зустрічей', reply_markup=keyboard(peace=True))
     if call.data == '✌':
         with open(avatar_father_anime, 'rb') as photo:
-            dad.send_photo(call.message.chat.id, photo, 'До побачення')
+            dad.send_photo(call.message.chat.id, photo, 'До побачення', reply_markup=keyboard(run=True))
     if call.data == '🎲':
         roll(call.message)
 
@@ -66,7 +109,7 @@ def start(message):
 def echo_all(message):
     text = message.text
     print('Мы здесь. '+text)
-    dad.reply_to(message, 'Ось, кинь кубик. 🎲', disable_notification=True, reply_markup=keyboard(dice=True))
+    dad.reply_to(message, 'Ось, кинь кубик. 🎲', disable_notification=True, reply_markup=keyboard(dice=True, run=True))
 
 #html #htmls
 owner_chat_id = ''
