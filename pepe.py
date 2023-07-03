@@ -8,8 +8,9 @@ import functions
 about_pic = "./pics/pepe.png"
 about_text = "Чё, как?"
 
-owner_chat_id = '317386736'
-admin_chat_id = '2051537651'
+owners = [ config.serj_dinar_pepe_chat_id,
+          config.lilia_pepe_chat_id,
+          config.ilia_pepe_chat_id]
 
 pepe = telebot.TeleBot(config.pepe_bot_token)
 
@@ -74,12 +75,6 @@ def fund(message):
     text_message = message.text[6:]
     pepe.send_message(config.fund13_general_chatid, text_message, disable_notification=True)
 
-#/vojd
-@pepe.message_handler(commands=['vojd'])
-def vojd(message):
-    text_message = message.text[6:]
-    pepe.send_message(config.vojd_chatid, text_message, disable_notification=True)
-
 #/send_to
 @pepe.message_handler(commands=['send_to'])
 def send_to(message):
@@ -103,14 +98,10 @@ def listen(message):
     #Trace all incoming messages to console
     print(f"pepe:{message}")
     #Send message info to owner chat
-    if owner_chat_id != '':
-        functions.send_message_to_owner(pepe, message, owner_chat_id)
-    if admin_chat_id != '':
-        functions.send_message_to_owner(pepe, message, admin_chat_id)
-        print(f'>> sent to admin\n>>\n{message.text}')
+    for owner in owners:
+        functions.send_message_to_owner(pepe, message, owner)
+        print(f'>>> owners\n>>\n{message.text}')
 
-
-import Owners
 # sticker
 # Handle all incoming stickers
 @pepe.message_handler(content_types=['sticker'])
@@ -118,8 +109,8 @@ def handle_sticker(message):
     #Trace all incoming messages
     print(f"sticker:{message}")
     #Send sticker info to owner chat
-    if owners.counts != '':
-        functions.send_sticker_to_owner(pepe, message, owner_chat_id)
+    for owner in owners:
+        functions.send_sticker_to_owner(pepe, message, owner)
 
     hashtags = re.findall(r'#\w+', message.reply_to_message.text)
     hashtags += re.findall(r'#\w+', message.text)
@@ -127,21 +118,13 @@ def handle_sticker(message):
     for tag in hashtags:
         pepe.send_sticker(tag[1:], message.sticker.file_id)
     
-    
-
     # If sticker message has a reply - search for #chatid in a reply and send sticker back to #chatid
     if message.reply_to_message != None:
         hashtags = re.findall(r'#\w+', message.reply_to_message.text)
         for tag in hashtags:
             pepe.send_sticker(tag[1:], message.sticker.file_id)
-    else:
-        #Trace all incoming messages
-        print(f"sticker:{message}")
-        #Send sticker info to owner chat
-        if owner_chat_id != '':
-            functions.send_sticker_to_owner(pepe, message, owner_chat_id)
-
 
 # TODO: Send keyboard
+
 # Start the bot
 pepe.infinity_polling()
