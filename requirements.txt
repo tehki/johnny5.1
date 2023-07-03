@@ -1,8 +1,8 @@
 openai
 pyTelegramBotAPI
-selenium
 python-binance
 nest-asyncio
 playwright
 
+# silenium
 # https://sites.google.com/chromium.org/driver/downloads installed ChromeDriver for the crawler bot
