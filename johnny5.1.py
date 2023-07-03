@@ -40,23 +40,22 @@ class Window(types.Message):
     title = ''
     text = ''
     output = ''
-    zen = False
-    debug = False
+    _zen = False
+    _debug = False
 
-    def __init__(self, bot, chat, user, photo = None, keyboard = None, parse_mode = 'html'):
+    def __init__(self, bot, chat, user, photo = None, keyboard = None, parse_mode = None):
         self.loop = asyncio.get_event_loop()
 
-        self.parse_mode = parse_mode
         self.bot: AsyncTeleBot = bot
         self.chat: types.Chat = chat
         self.user: types.User = user
         self.message: types.Message = None
+        self.parse_mode = parse_mode
 
         self.photo: Optional[str] = photo
         self.pic: types.InputMediaPhoto = None
 
         self.keyboard: Optional[types.ReplyKeyboardMarkup] = keyboard
-
         self.create()
 
         global Windows
@@ -74,21 +73,22 @@ class Window(types.Message):
     def destroy(self): # TODO: Test
         success = False
         global Windows
-        # print(Windows)
+        if self._debug:
+            print(f'{self.id}:destroy\nwindows:\n{Windows}')
+        
         # Find and remove an instance from the list
         for win in Windows:
             if win.message.id == self.message.message_id:
-                Windows.remove(win)
-
                 destroy_task = self.loop.create_task(self.async_destroy())
                 self.loop.run_until_complete(asyncio.gather(destroy_task))
+                Windows.remove(win)
                 success = True
                 break
         return success
         
     def body(self, text=None, title=None, keyboard=None):
         output = ''
-        if not self.zen:
+        if not self._zen:
             if title != None:
                 self.title = title
             if text != None:
@@ -101,16 +101,20 @@ class Window(types.Message):
             if self.text != None:
                 output += f'<code>{self.text}</code>'
 
-            self.output = output
+            self._output = output
         else:
-            self.output = None
+            self._output = None
         self.update()
 
     def head(self, photo=None):
         if photo != None:
             self.photo = photo
-        if self.photo != None:
-            self.upload()
+        self.upload()
+
+    def zen(self):
+        self._zen = True
+        self.head()
+        self.body(keyboard=None)
 
     def update(self):
         update_task = self.loop.create_task(self.async_update()) 
@@ -158,16 +162,16 @@ class Window(types.Message):
             global system
             if self.photo is not None:
                 if self.message.caption != output:
-                    keyboard = None if system.zen else self.keyboard
+                    keyboard = None if system._zen else self.keyboard
                     self.message = await self.bot.edit_message_caption(self.output, self.chat.id, self.message.id, parse_mode=self.parse_mode, reply_markup=keyboard)
 
             elif self.message.text != output:
-                keyboard = None if system.zen else self.keyboard
+                keyboard = None if system._zen else self.keyboard
                 self.message = await self.bot.edit_message_text(self.output, self.chat.id, self.message.message_id, parse_mode=self.parse_mode, reply_markup=keyboard)
 
     async def async_upload(self):
         if self.message is not None:
-            if self.photo is not None:
+            if self.photo is not None: #TODO: Check content-types
                 if self.photo.startswith('./'): #local file
                     with open(self.photo, 'rb') as photo:
                         self.pic = types.InputMediaPhoto(photo)
@@ -178,7 +182,6 @@ class Window(types.Message):
                 else: #fileid?
                     self.pic = types.InputMediaPhoto(self.photo)
                     self.message = await self.bot.edit_message_media(self.pic, self.chat.id, self.message.id)
-
 
     async def async_create(self):
         if self.message is None:
@@ -195,24 +198,26 @@ class Window(types.Message):
             self.message = None
 
 async def echo(text):
-    global system_input
-    if system_input is not None:
-        system_input.body(text)
+    global console
+    if console is not None:
+        console.body(text)
 
-async def delete(bot, message):
-    await bot.delete_message(message.chat.id, message.message_id)
+async def delete(message):
+    global johnny
+    await johnny.delete_message(message.chat.id, message.message_id)
 
 async def update():
     global Windows, system
-    if system.zen:
+    if system._zen:
         if system.photo != None: # TODO: Or .pic?
-            system.head(config.zen_mode_pic)
+            system.head(pics.zen)
     
         for window in Windows:
-            window.zen = True
-            window.body(text=None, title=None, keyboard=None)
+            window.zen()
+
     else:
         for window in Windows:
+            window.head()
             window.body()
 
 #TODO: "Object of type Window is not JSON serializable" for Windows
@@ -252,7 +257,7 @@ async def pictures(message):
         system.body()
 
         await echo(message.text)
-        await delete(johnny, message)
+        await delete(message)
 
 
 # /screenshots /scrns
@@ -279,15 +284,17 @@ async def screenshots(message):
         await echo(message.text)
         await delete(johnny, message)
 
-# /anime
-@johnny.message_handler(commands=['anime'])
-async def anime(message):
-    global system
+import pics
+# /zen
+@johnny.message_handler(commands=['zen'])
+async def zen(message):
+    global system, console, process
     if system is not None:
-        system.photo = './pics/johnny_anime.jpg'
-        system.head()
-        system.text = 'Do you like me now?'
-        system.body()
+        system.zen()
+    if console is not None:
+        console.zen()
+    if process is not None:
+        process.zen()
 
     if message is not None:
         await echo(message.text)
@@ -323,15 +330,18 @@ async def pic(message):
             system.body()
         
     await echo(message.text)
-    await delete(johnny, message)
+    await delete(message)
         
 # /johnny
 @johnny.message_handler(commands=['johnny'])
 async def johnny_(message):
-    global system, console
+    global system, process
+
     if system is not None:
         # system.photo = './pics/johnny_anime.jpg'
         # system.sticker #TODO: Stickers
+        # stickers https://t.me/addstickers/parnoemoloko
+
         system.text = 'Yes?'
         system.head()
         system.body()
@@ -355,7 +365,7 @@ async def johnny_(message):
 
 
     await echo(message.text)
-    await delete(johnny, message)
+    await delete(message)
 
 # /message /msg
 @johnny.message_handler(commands=['message', 'msg'])
@@ -371,7 +381,7 @@ async def msg(message):
         system.body()
     
     await echo(message.text)
-    await delete(johnny, message)
+    await delete(message)
 
 
 # TODO: restart
@@ -383,6 +393,7 @@ async def start(message):
 
     #print(f'MESSAGE:\n{message}')
 
+    # TODO: Needs to be done for every inc. message and command
     # Gets a chat and user.
     user = message.from_user
     chat = message.chat
@@ -392,54 +403,39 @@ async def start(message):
     Users.append(user)
     Messages.append(message)
     
-    # Creates 3 new windows - 1 avatar, 2 consoles
-    # Sends its avatar as Window 0.
-
-    pic_path = './pics/'
-    avatar_name = 'johnny.jpg'
-    avatar_path = os.path.join(pic_path, avatar_name)
+    # Creates system, console and process
+    global system, console, process
     
-    avatar = Window(johnny, chat, user, avatar_path)
-    # Sends a console.
-    console = Window(johnny, chat, user, keyboard=keyboard())
-    # to show user input and reactions
-    console2 = Window(johnny, chat, user)
-    # stickers https://t.me/addstickers/parnoemoloko
+    system = Window(johnny, chat, user, pics.johnny)
+    process = Window(johnny, chat, user, keyboard=keyboard())
+    console = Window(johnny, chat, user)
 
-    # Window.Head( Stickers, Pictures )
-    # Window.Body( Text, Title, Keyboard )
-
-    avatar.text = "Hi there."
-    avatar.title = f"#{avatar.message.id}:@{avatar.name()} {avatar.first_name()}:{avatar.chat.id}\n"
-
-    console.text = f"{time.strftime('%H:%M:%S')}"
-    console.title = f"#{console.message.id}\n"
-
-    console2.text = '/start'
-    console2.title = f"#{console2.message.id}:@{console2.user.username} {console2.user.full_name}:{console2.chat.id}\n"
-
-    global system, system_input
-    processing_speed = 0.1
-    system = avatar
-    system.title = f'{system.first_name()}: '
-    system_input = console2
-    system_input.title = f'{system.user.first_name}: '
-
-    console.title = ''
-
-    # Creates a keyboard and applies it to a Window.
+    system.text = "Hi there."
     system.keyboard = keyboard(hi=True)
+    system.title = f'{system.first_name()}: '
 
+    processing_speed = 0.1 # TODO: processing slow-down for group chats
+    process.text = f"{time.strftime('%H:%M:%S')}"
+    process.title = ''
+
+    console.text = '/start'
+    console.title = f'{system.user.first_name}: '
+
+    # TODO: debug mode
+    # if debug: system.title = f"#{avatar.message.id}:@{avatar.name()} {avatar.first_name()}:{avatar.chat.id}\n"
+    # if debug: process.title = f"#{console.message.id}\n"
+    # if debug: console.title = f"#{console.message.id}:@{console.user.username} {console.user.full_name}:{console.chat.id}\n"
+    
     while True:
         time.sleep(processing_speed) # TODO: FIX HTML update timeout messages
-        console.text = f"{time.strftime('%H:%M:%S')}"
+        process.text = f"{time.strftime('%H:%M:%S')}"
         await update()
 
 # Create a button
 def create_button(emoji):
     return types.InlineKeyboardButton(text=f'{emoji}', callback_data=f'{emoji}')
 # Create a default keyboard
-def keyboard(roll=False, dot=False, hi=False, arigato=False, slash=False, anime=False, close=True, zen=False):
+def keyboard(roll=False, dot=False, hi=False, arigato=False, slash=False, close=True, zen=False):
     # Create an inline keyboard
     keyboard = types.InlineKeyboardMarkup()
     # Adding buttons
@@ -447,18 +443,16 @@ def keyboard(roll=False, dot=False, hi=False, arigato=False, slash=False, anime=
         keyboard.add(create_button('\/'))
     if slash:
         keyboard.add(create_button('/'))
-    if roll:
-        keyboard.add(create_button(emojis.dice_emoji))
     if hi:
         keyboard.add(create_button('o/'))
     if arigato:
         keyboard.add(create_button('/\\'))
     if dot:
         keyboard.add(create_button('.'))
-    if anime:
-        keyboard.add(create_button('🐕'))
     if close:
         keyboard.add(create_button('💢') )
+    if roll:
+        keyboard.add(create_button('🎲'))
     return keyboard
 # Buttons callback
 @johnny.callback_query_handler(func=lambda call: True)
@@ -466,13 +460,9 @@ async def handle_callback(call):
     global system, system_input
 
     if call.data == ('\/'):
-        system.zen = True
-        await update()
-
-    if call.data == emojis.dice_emoji:
-        await roll (call.message)
-        system.body('Nice.', keyboard=keyboard(slash=True))
-        system_input.body('/roll')
+        await zen(None)
+        system.body('\/')
+        console.body('\/')
     if call.data == '.':
         system.body('o/', keyboard=keyboard(slash=True))
         system_input.body('.')
@@ -485,9 +475,10 @@ async def handle_callback(call):
     if call.data == ('/'):
         system.body('\n./\n/johnny\n/anime\n/windows\n/pictures\n/pic\n/pics\n/screenshots\n/scrns\n/msg\n/flower', keyboard=keyboard(roll=True))
         system_input.body('/')
-    if call.data == ('🐕'):
-        await anime(None)
-        system_input('/anime 🐕')
+    if call.data == '🎲':
+        await roll (call.message)
+        system.body('Nice.', keyboard=keyboard(slash=True))
+        system_input.body('/roll')
     if call.data == ('💢'):
         global Windows
         # Call debug
@@ -521,7 +512,7 @@ async def handle_dice(message):
         system.keyboard = keyboard(dot=True, roll=True)
     if dice_value == 3:
         system.text = f'Alright!!! A {dice_value}! My lucky number. Hey, wanna see something?'
-        system.keyboard = keyboard(dot=True, roll=True, anime=True)
+        system.keyboard = keyboard(dot=True, zen=True)
     if dice_value < 3:
         system.text = f"Urgh... it's a {dice_value}. Better luck next time."
         system.keyboard = keyboard(dot=True, slash=True)
@@ -542,28 +533,29 @@ async def listen(message):
     if message.text == '.':
         system.body('o/')
     elif message.text == 'o/':
-        system.zen = False
+        system._zen = False
         system.body('/\\')
     elif message.text == '/\\':
         system.body('.')
     elif message.text == '/':
         system.body('\n./\n/johnny\n/anime\n/windows\n/pictures\n/pic\n/msg\n/flower') #TODO: To function >> call.data update
     elif message.text == '\/':
-        system.zen = True
+        await zen(None)
         system.body('\/')
     
     print(f'>>> {message.text}')
     await echo(message.text)
-    await delete(johnny, message)
+    await delete(message)
 ###
 
 # sticker
 # Handle all incoming stickers
 @johnny.message_handler(content_types=['sticker'])
 async def sticker(message):
+    global system
     system.body(message.sticker.file_id)
     await echo(message.sticker.emoji)
-    await delete(johnny, message)
+    await delete(message)
 ###
 ###
 
