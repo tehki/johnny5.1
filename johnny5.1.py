@@ -457,7 +457,7 @@ def keyboard(roll=False, dot=False, hi=False, arigato=False, slash=False, close=
 # Buttons callback
 @johnny.callback_query_handler(func=lambda call: True)
 async def handle_callback(call):
-    global system, system_input
+    global system, console
 
     if call.data == ('\/'):
         await zen(None)
@@ -465,20 +465,20 @@ async def handle_callback(call):
         console.body('\/')
     if call.data == '.':
         system.body('o/', keyboard=keyboard(slash=True))
-        system_input.body('.')
+        console.body('.')
     if call.data == 'o/':
         system.body('/\\', keyboard=keyboard(arigato=True))
-        system_input.body('o/')
+        console.body('o/')
     if call.data == ('/\\'):
         system.body('.', keyboard=keyboard(dot=True))
-        system_input.body('/\\')
+        console.body('/\\')
     if call.data == ('/'):
         system.body('\n./\n/johnny\n/anime\n/windows\n/pictures\n/pic\n/pics\n/screenshots\n/scrns\n/msg\n/flower', keyboard=keyboard(roll=True))
-        system_input.body('/')
+        console.body('/')
     if call.data == '🎲':
         await roll (call.message)
         system.body('Nice.', keyboard=keyboard(slash=True))
-        system_input.body('/roll')
+        console.body('/roll')
     if call.data == ('💢'):
         global Windows
         # Call debug
@@ -492,7 +492,7 @@ async def handle_callback(call):
                 else:
                     system.text = f'#{wnd.message.id} is not under my power.'
 
-        system_input = f'💢#{call.message.id}'
+        console = f'💢#{call.message.id}'
 
 # /roll 🎲
 @johnny.message_handler(commands=['roll'])
