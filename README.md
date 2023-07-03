@@ -20,7 +20,7 @@ py -m virtualenv env
 py -m pip install -r requirements.txt
 playwright install
 
-# probably need to check config.py and update with your keys
+# create config.py and config.py > johnny5_bot_token = "YOUR_SECRET_TELEGRAM_BOT_TOKEN_HERE" # put your secret key here 🤫
 
 # launch :)
 py johnny5.1.py

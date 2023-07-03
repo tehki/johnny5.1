@@ -18,13 +18,17 @@ from typing import Dict, List, Optional, Union
 import nest_asyncio
 nest_asyncio.apply()
 
+# 🤫
+# alice.
+# I'm here.
+# 
+
+# 
+
 global johnny
 johnny = AsyncTeleBot (config.johnny5_bot_token)
 # johnny.parse_mode = None
 johnny.parse_mode = "html"
-
-global _debug
-_debug = False
 
 global Chats, Users, Messages, Windows
 global system, process, console # type.Window
@@ -38,6 +42,11 @@ Users = [] # types.User
 Messages = [] # types.Message
 Windows = []
 
+# Debugging. Turn on/off.
+global _debug
+_debug = False
+
+#TODO: add <pre> and other.
 def strip_html(text):
     output = text
     output = re.sub(r'<b>', '', output)
