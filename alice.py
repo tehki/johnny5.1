@@ -40,6 +40,7 @@ Windows = []
 class Window(types.Message):
 
     title = ''
+    text = ''
     output = ''
     zen = False
     debug = False
