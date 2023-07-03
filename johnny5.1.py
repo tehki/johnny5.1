@@ -530,6 +530,23 @@ async def handle_dice(message):
     await echo(dice_value)
     await johnny.delete_message(message.chat.id, message.message_id) #TODO: It was await delete(). What's the difference?
 
+def kbd(hack):
+    dot = False
+    close = False
+    slash = False
+    zen = False
+
+    txt = hack
+    if txt.startswith('.'):
+        dot = True
+    if txt[1:].startswith('.'):
+        close = True
+    if txt[2:].startswith('/'):
+        slash=True
+    if txt[3:].startswith('\\'):
+        zen=True    
+    return keyboard(dot=dot, close=close, slash=slash, zen=zen)
+
 # /say
 @johnny.message_handler(commands='say')
 async def say(message):
@@ -538,24 +555,15 @@ async def say(message):
 
     txt: str = ''
     txt = message.text[5:]
-    kbd = None  
+    kbdd = kbd(txt)
 
-    dot = False
-    close = False
-    slash = False
-    zen = False
-
+    global console #console superhack /say.../\
+    txt = message.text[4:]
     if txt.startswith('.'):
-        dot = True
-    if txt[1:].startswith('.'):
-        close = True
-    if txt[2:].startswith('/'):
-        slash=True
-    if txt[3:].startswith('\\'):
-        zen=True
-    kbd = keyboard(dot=dot, close=close, slash=slash, zen=zen)
+        console.keyboard = kbdd
+        console.body()
 
-    await johnny.send_message(message.chat.id, txt, reply_markup=kbd)
+    await johnny.send_message(message.chat.id, txt, reply_markup=kbdd)
     await echo(message.text)
     await delete(message)
 # text
