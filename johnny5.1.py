@@ -22,8 +22,7 @@ nest_asyncio.apply()
 # alice.
 # I'm here.
 # 
-
-# 
+# . /\ \/ . / . o/ . /\ ./ ? . #
 
 global johnny
 johnny = AsyncTeleBot (config.johnny5_bot_token)
