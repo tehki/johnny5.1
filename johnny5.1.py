@@ -43,26 +43,28 @@ Windows = []
 
 # Debugging. Turn on/off.
 global _debug
-_debug = False
+_debug = True
 
-#TODO: add other to fix errors
+#TODO: check for more tags to add
 def strip_html(text):
-    output = text
-    output = re.sub(r'<b>', '', output)
-    output = re.sub(r'</b>', '', output)
-    output = re.sub(r'<i>', '', output)
-    output = re.sub(r'</i>', '', output)
-    output = re.sub(r'<em>', '', output)
-    output = re.sub(r'</em>', '', output)
-    output = re.sub(r'<pre>', '', output)
-    output = re.sub(r'</pre>', '', output)
-    output = re.sub(r'<code>', '', output)
-    output = re.sub(r'</code>', '', output)
-    output = re.sub(r'<strong>', '', output)
-    output = re.sub(r'</strong>', '', output)
-    if output.endswith('\n'):
-        output = output.rstrip('\n')
-    return output
+    if text is not None and text != '':
+        output = text
+        output = re.sub(r'<b>', '', output)
+        output = re.sub(r'</b>', '', output)
+        output = re.sub(r'<i>', '', output)
+        output = re.sub(r'</i>', '', output)
+        output = re.sub(r'<em>', '', output)
+        output = re.sub(r'</em>', '', output)
+        output = re.sub(r'<pre>', '', output)
+        output = re.sub(r'</pre>', '', output)
+        output = re.sub(r'<code>', '', output)
+        output = re.sub(r'</code>', '', output)
+        output = re.sub(r'<strong>', '', output)
+        output = re.sub(r'</strong>', '', output)
+        if output.endswith('\n'):
+            output = output.rstrip('\n')
+        return output
+    return text
 
 class Window(types.Message):
 
@@ -174,6 +176,8 @@ class Window(types.Message):
             <pre> pre - formatted fixed-width code block</pre>
             """
             if self.photo is not None:
+                if self._debug:
+                    print(f'#message.caption:{self.message.caption}\n#self.input:{self.output}')
                 if strip_html(self.message.caption) != strip_html(self.output):
                     keyboard = None if system._zen else self.keyboard
                     if (self._debug):
@@ -270,6 +274,9 @@ async def pictures(message):
             system.text += f"\n{picture}"
         system.body()
 
+        if _debug:
+            print(f"/pics OK? {system.text} @ system")
+
         await echo(message.text)
         await delete(message)
 
@@ -314,33 +321,23 @@ async def zen(message):
         await echo(message.text)
         await delete(message)
 
-# /flower
-@johnny.message_handler(commands='flower')
-async def flower(message):
-    global system
-    if system is not None:
-        system.photo = 'AgACAgQAAxkDAAIHimSg9Sojhox9Fz_DQmXwAyzW696AAALYsDEbj5oMUUaU-gWtgmtDAQADAgADcwADLwQ'
-        system.head()
-        system.text = 'Flowers are wonderful.'
-        system.body()
-    
-    await echo(message.text)
-    await delete(message)
-
 # /pic url
 @johnny.message_handler(commands='pic')
 async def pic(message):
     global system
 
     if system is not None:
+        print(f"/pic:{message.text}")
         if message.text == '/pic':
             system.text = system.message.photo[0].file_id
             system.body()
         else:
             url = message.text[5:]
             system.photo = url
-            system.head()
             system.text = system.message.photo[0].file_id
+
+            # print(f"/pic {url} head updated.\n{system.message.photo}")
+            system.head()
             system.body()
         
     await echo(message.text)
@@ -485,7 +482,7 @@ async def handle_callback(call):
         system.body('.', keyboard=keyboard(dot=True))
         console.body('/\\')
     if call.data == ('/'):
-        system.body('\n./\n/johnny\n/windows\n/pictures\n/pic\n/pics\n/screenshots\n/scrns\n/msg\n/flower', keyboard=keyboard(roll=True))
+        system.body('\n./\n/johnny\n/windows\n/pictures\n/pic\n/pics\n/screenshots\n/scrns\n/msg', keyboard=keyboard(roll=True))
         console.body('/')
     if call.data == '🎲':
         await roll (call.message)
@@ -533,6 +530,34 @@ async def handle_dice(message):
     await echo(dice_value)
     await johnny.delete_message(message.chat.id, message.message_id) #TODO: It was await delete(). What's the difference?
 
+# /say
+@johnny.message_handler(commands='say')
+async def say(message):
+    if _debug:
+        print(f'#/say {message}')
+
+    txt: str = ''
+    txt = message.text[5:]
+    kbd = None  
+
+    dot = False
+    close = False
+    slash = False
+    zen = False
+
+    if txt.startswith('.'):
+        dot = True
+    if txt[1:].startswith('.'):
+        close = True
+    if txt[2:].startswith('/'):
+        slash=True
+    if txt[3:].startswith('\\'):
+        zen=True
+    kbd = keyboard(dot=dot, close=close, slash=slash, zen=zen)
+
+    await johnny.send_message(message.chat.id, txt, reply_markup=kbd)
+    await echo(message.text)
+    await delete(message)
 # text
 # Handle all incoming text messages
 ###
@@ -548,7 +573,7 @@ async def listen(message):
     elif message.text == '/\\':
         system.body('.')
     elif message.text == '/':
-        system.body('\n./\n/johnny\n/windows\n/pictures\n/pic\n/msg\n/flower') #TODO: To function >> call.data update
+        system.body('\n./\n/johnny\n/windows\n/pictures\n/pic\n/msg') #TODO: To function >> call.data update
     elif message.text == '\/':
         await zen(None)
         system.body('\/')

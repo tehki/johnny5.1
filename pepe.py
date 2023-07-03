@@ -100,7 +100,7 @@ def listen(message):
     #Send message info to owner chat
     for owner in owners:
         functions.send_message_to_owner(pepe, message, owner)
-        print(f'>>> owners\n>>\n{message.text}')
+        print(f'>>>owners:{owner}\n>>\n{message.text}')
 
 # sticker
 # Handle all incoming stickers
@@ -112,8 +112,11 @@ def handle_sticker(message):
     for owner in owners:
         functions.send_sticker_to_owner(pepe, message, owner)
 
-    hashtags = re.findall(r'#\w+', message.reply_to_message.text)
-    hashtags += re.findall(r'#\w+', message.text)
+    hashtags = ''
+    if message.reply_to_message is not None:
+        hashtags += re.findall(r'#\w+', message.reply_to_message.text)
+    if message.text is not None:
+        hashtags += re.findall(r'#\w+', message.text)
 
     for tag in hashtags:
         pepe.send_sticker(tag[1:], message.sticker.file_id)
