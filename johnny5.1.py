@@ -23,6 +23,9 @@ johnny = AsyncTeleBot (config.johnny5_bot_token)
 johnny.parse_mode = None
 # johnny.parse_mode = "html"
 
+global _debug
+_debug = True
+
 global Chats, Users, Messages, Windows
 global system, process, console # type.Window
 
@@ -41,10 +44,10 @@ class Window(types.Message):
     text = ''
     output = ''
     _zen = False
-    _debug = False
 
-    def __init__(self, bot, chat, user, photo = None, keyboard = None, parse_mode = None):
+    def __init__(self, bot, chat, user, photo = None, keyboard = None, parse_mode = None, debug = False):
         self.loop = asyncio.get_event_loop()
+        self._debug: bool = debug
 
         self.bot: AsyncTeleBot = bot
         self.chat: types.Chat = chat
@@ -114,7 +117,7 @@ class Window(types.Message):
     def zen(self):
         self._zen = True
         self.head()
-        self.body(keyboard=None)
+        self.body()
 
     def update(self):
         update_task = self.loop.create_task(self.async_update()) 
@@ -165,6 +168,8 @@ class Window(types.Message):
                     keyboard = None if system._zen else self.keyboard
                     self.message = await self.bot.edit_message_caption(self.output, self.chat.id, self.message.id, parse_mode=self.parse_mode, reply_markup=keyboard)
 
+            if self._debug:
+                print(f'{self.id}:async_update:output\n{self.output}')
             elif self.message.text != output:
                 keyboard = None if system._zen else self.keyboard
                 self.message = await self.bot.edit_message_text(self.output, self.chat.id, self.message.message_id, parse_mode=self.parse_mode, reply_markup=keyboard)
@@ -233,7 +238,7 @@ async def windows(message):
         system.body()
 
     await echo(message.text)
-    await delete(johnny, message)
+    await delete(message)
 
 # /pictures /pics
 @johnny.message_handler(commands=['pictures', 'pics'])
@@ -390,7 +395,7 @@ async def msg(message):
 @johnny.message_handler(commands=['start'])
 async def start(message):
     global Chats, Users, Messages, Windows
-
+    global _debug
     #print(f'MESSAGE:\n{message}')
 
     # TODO: Needs to be done for every inc. message and command
@@ -406,9 +411,9 @@ async def start(message):
     # Creates system, console and process
     global system, console, process
     
-    system = Window(johnny, chat, user, pics.johnny)
-    process = Window(johnny, chat, user, keyboard=keyboard())
-    console = Window(johnny, chat, user)
+    system = Window(johnny, chat, user, pics.johnny, debug = _debug)
+    process = Window(johnny, chat, user, keyboard=keyboard(), debug = _debug)
+    console = Window(johnny, chat, user, debug = _debug)
 
     system.text = "Hi there."
     system.keyboard = keyboard(hi=True)
