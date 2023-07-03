@@ -77,7 +77,7 @@ class Window(types.Message):
         success = False
         global Windows
         if self._debug:
-            print(f'{self.id}:destroy\nwindows:\n{Windows}')
+            print(f'{self.message.message_id}:destroy\nwindows:\n{Windows}')
         
         # Find and remove an instance from the list
         for win in Windows:
@@ -104,9 +104,10 @@ class Window(types.Message):
             if self.text != None:
                 output += f'<code>{self.text}</code>'
 
-            self._output = output
+            self.output = output
         else:
-            self._output = None
+            self.output = None
+
         self.update()
 
     def head(self, photo=None):
@@ -136,43 +137,44 @@ class Window(types.Message):
                 "chatid": self.chat.id,
                 "text": self.text}
 
+    def strip_html(text):
+        output = text
+        output = re.sub(r'<b>', '', output)
+        output = re.sub(r'</b>', '', output)
+        output = re.sub(r'<i>', '', output)
+        output = re.sub(r'</i>', '', output)
+        output = re.sub(r'<em>', '', output)
+        output = re.sub(r'</em>', '', output)
+        output = re.sub(r'<code>', '', output)
+        output = re.sub(r'</code>', '', output)
+        output = re.sub(r'<strong>', '', output)
+        output = re.sub(r'</strong>', '', output)
+        if output.endswith('\n'):
+            output = output.rstrip('\n')
+        return output
+
     async def async_update(self):
+        global system
         if self.message is not None:
-                        
+            if self._debug:
+                print(f'{self.message.message_id}:async_update:output({len(self.output)}):{self.output}')
             """ TODO: add more html filters
             <a href = 'http://www.example.com/'> inline URL </a>
             <a href = 'tg://user?id=123456789'> inline mention of a user</a>
             <pre> pre - formatted fixed-width code block</pre>
             """
-            output = self.output
-            # Removing html tags using regular expressions
-            output = re.sub(r'<b>', '', output)
-            output = re.sub(r'</b>', '', output)
-            output = re.sub(r'<i>', '', output)
-            output = re.sub(r'</i>', '', output)
-            output = re.sub(r'<em>', '', output)
-            output = re.sub(r'</em>', '', output)
-            output = re.sub(r'<code>', '', output)
-            output = re.sub(r'</code>', '', output)
-            output = re.sub(r'<strong>', '', output)
-            output = re.sub(r'</strong>', '', output)
-            # Check if the string ends with a newline character
-            if output.endswith('\n'):
-                # Remove the newline character from the end of the string
-                output = output.rstrip('\n')
-
-
-            global system
             if self.photo is not None:
-                if self.message.caption != output:
+                if strip_html(self.message.caption) != strip_html(self.output):
                     keyboard = None if system._zen else self.keyboard
+                    if (self._debug):
+                        print(f'sending edit_message_caption')
                     self.message = await self.bot.edit_message_caption(self.output, self.chat.id, self.message.id, parse_mode=self.parse_mode, reply_markup=keyboard)
-
-            if self._debug:
-                print(f'{self.id}:async_update:output\n{self.output}')
-            elif self.message.text != output:
-                keyboard = None if system._zen else self.keyboard
-                self.message = await self.bot.edit_message_text(self.output, self.chat.id, self.message.message_id, parse_mode=self.parse_mode, reply_markup=keyboard)
+            elif self.output != '':
+                if strip_html(self.message.text) != strip_html(output):
+                    keyboard = None if system._zen else self.keyboard
+                    if (self._debug):
+                        print(f'sending edit_message_text')
+                    self.message = await self.bot.edit_message_text(self.output, self.chat.id, self.message.message_id, parse_mode=self.parse_mode, reply_markup=keyboard)
 
     async def async_upload(self):
         if self.message is not None:
@@ -216,13 +218,11 @@ async def update():
     if system._zen:
         if system.photo != None: # TODO: Or .pic?
             system.head(pics.zen)
-    
         for window in Windows:
             window.zen()
-
     else:
         for window in Windows:
-            window.head()
+            print(f"window {window.message.id} update")
             window.body()
 
 #TODO: "Object of type Window is not JSON serializable" for Windows
@@ -337,7 +337,7 @@ async def pic(message):
     await echo(message.text)
     await delete(message)
         
-# /johnny
+# /johnny #TODO: Remake
 @johnny.message_handler(commands=['johnny'])
 async def johnny_(message):
     global system, process
@@ -351,17 +351,14 @@ async def johnny_(message):
         system.head()
         system.body()
 
+        processing_speed = 5
+
         new = Window(system.bot, system.chat, system.user)
         new.title = f"#{new.message.id}:@{new.name()} {new.first_name()}:{new.chat.id}\n"
         new.keyboard = keyboard(slash=True, dot=True, arigato=True)
         new.text = '/\\'
         
         # system = new # TODO: System reboot? Saving states.
-        global console, console_output
-        processing_speed = 5
-        console = new
-        console_output = Window(console.bot, console.chat, console.user, keyboard())
-        console_output.title = f"#{console_output.id}:@{console_output.name()} {console_output.first_name()}:{console_output.chat.id}\n"
 
         while True:
             time.sleep(processing_speed) # TODO: FIX HTML update timeout messages
@@ -412,7 +409,7 @@ async def start(message):
     global system, console, process
     
     system = Window(johnny, chat, user, pics.johnny, debug = _debug)
-    process = Window(johnny, chat, user, keyboard=keyboard(), debug = _debug)
+    process = Window(johnny, chat, user, debug = _debug)
     console = Window(johnny, chat, user, debug = _debug)
 
     system.text = "Hi there."
@@ -420,7 +417,6 @@ async def start(message):
     system.title = f'{system.first_name()}: '
 
     processing_speed = 0.1 # TODO: processing slow-down for group chats
-    process.text = f"{time.strftime('%H:%M:%S')}"
     process.title = ''
 
     console.text = '/start'
@@ -431,8 +427,10 @@ async def start(message):
     # if debug: process.title = f"#{console.message.id}\n"
     # if debug: console.title = f"#{console.message.id}:@{console.user.username} {console.user.full_name}:{console.chat.id}\n"
     
+    print("While TRUE: >>")
+
     while True:
-        time.sleep(processing_speed) # TODO: FIX HTML update timeout messages
+        time.sleep(processing_speed)
         process.text = f"{time.strftime('%H:%M:%S')}"
         await update()
 
@@ -440,7 +438,7 @@ async def start(message):
 def create_button(emoji):
     return types.InlineKeyboardButton(text=f'{emoji}', callback_data=f'{emoji}')
 # Create a default keyboard
-def keyboard(roll=False, dot=False, hi=False, arigato=False, slash=False, close=True, zen=False):
+def keyboard(roll=False, dot=False, hi=False, arigato=False, slash=False, close=False, zen=False):
     # Create an inline keyboard
     keyboard = types.InlineKeyboardMarkup()
     # Adding buttons
@@ -502,8 +500,8 @@ async def handle_callback(call):
 # /roll 🎲
 @johnny.message_handler(commands=['roll'])
 async def roll(message):
-    await johnny.send_dice(message.chat.id, emoji=emojis.dice_emoji,
-                  disable_notification=True, reply_markup=keyboard(close=True))
+    await johnny.send_dice(message.chat.id, emoji='🎲',
+                  disable_notification=True) # TODO: Make close available via keyboard
 
 # Define a message handler for dice roll messages
 @johnny.message_handler(content_types=['dice'])
@@ -524,8 +522,6 @@ async def handle_dice(message):
     system.body()
 
     await echo(dice_value)
-    # Wait for 5 seconds
-    await asyncio.sleep(5)
     await johnny.delete_message(message.chat.id, message.message_id) #TODO: It was await delete(). What's the difference?
 
 # text
