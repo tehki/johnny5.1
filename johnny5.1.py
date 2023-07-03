@@ -1,10 +1,11 @@
 import time
 import config
+
 import json
 import re
 import os
-import emojis
-import functions
+# import emojis
+# import functions
 
 from telebot import types
 from telebot.async_telebot import AsyncTeleBot
@@ -17,12 +18,12 @@ from typing import Dict, List, Optional, Union
 import nest_asyncio
 nest_asyncio.apply()
 
-alice = AsyncTeleBot (config.alice_bot_token)
+johnny = AsyncTeleBot (config.johnny_bot_token)
 
-# alice.parse_mode = None
-alice.parse_mode = "html"
+# johnny.parse_mode = None
+johnny.parse_mode = "html"
 
-# Alice has chats and users.
+# johnny has chats and users.
 global Chats, Users, Messages, Windows
 global system, system_input # type.Window
 system = None
@@ -219,7 +220,7 @@ async def update():
 
 #TODO: "Object of type Window is not JSON serializable" for Windows
 # /windows
-@alice.message_handler(commands=['windows'])
+@johnny.message_handler(commands=['windows'])
 async def windows(message):
     global Windows, system
     if system is not None:
@@ -230,10 +231,10 @@ async def windows(message):
         system.body()
 
     await echo(message.text)
-    await delete(alice, message)
+    await delete(johnny, message)
 
 # /pictures /pics
-@alice.message_handler(commands=['pictures', 'pics'])
+@johnny.message_handler(commands=['pictures', 'pics'])
 async def pictures(message):
     global system
     if system is not None:
@@ -254,11 +255,11 @@ async def pictures(message):
         system.body()
 
         await echo(message.text)
-        await delete(alice, message)
+        await delete(johnny, message)
 
 
 # /screenshots /scrns
-@alice.message_handler(commands=['screenshots', 'scrns'])
+@johnny.message_handler(commands=['screenshots', 'scrns'])
 async def screenshots(message):
     global system
     if system is not None:
@@ -279,24 +280,24 @@ async def screenshots(message):
         system.body()
 
         await echo(message.text)
-        await delete(alice, message)
+        await delete(johnny, message)
 
 # /anime
-@alice.message_handler(commands=['anime'])
+@johnny.message_handler(commands=['anime'])
 async def anime(message):
     global system
     if system is not None:
-        system.photo = './pics/alice_anime.jpg'
+        system.photo = './pics/johnny_anime.jpg'
         system.head()
         system.text = 'Do you like me now?'
         system.body()
 
     if message is not None:
         await echo(message.text)
-        await delete(alice, message)
+        await delete(johnny, message)
 
 # /flower
-@alice.message_handler(commands='flower')
+@johnny.message_handler(commands='flower')
 async def flower(message):
     global system
     if system is not None:
@@ -306,10 +307,10 @@ async def flower(message):
         system.body()
     
     await echo(message.text)
-    await delete(alice, message)
+    await delete(johnny, message)
 
 # /pic url
-@alice.message_handler(commands='pic')
+@johnny.message_handler(commands='pic')
 async def pic(message):
     global system
 
@@ -325,14 +326,14 @@ async def pic(message):
             system.body()
         
     await echo(message.text)
-    await delete(alice, message)
+    await delete(johnny, message)
         
-# /alice
-@alice.message_handler(commands=['alice'])
-async def alice_(message):
+# /johnny
+@johnny.message_handler(commands=['johnny'])
+async def johnny_(message):
     global system, console
     if system is not None:
-        # system.photo = './pics/alice_anime.jpg'
+        # system.photo = './pics/johnny_anime.jpg'
         # system.sticker #TODO: Stickers
         system.text = 'Yes?'
         system.head()
@@ -357,10 +358,10 @@ async def alice_(message):
 
 
     await echo(message.text)
-    await delete(alice, message)
+    await delete(johnny, message)
 
 # /message /msg
-@alice.message_handler(commands=['message', 'msg'])
+@johnny.message_handler(commands=['message', 'msg'])
 async def msg(message):
     global system
     if system is not None:
@@ -369,17 +370,17 @@ async def msg(message):
         system.text += f'\nphoto:{system.message.photo[0]}'
 
         # system.text = f'\nmsg:{system.message.json}' # TODO: create new output window
-        # await alice.send_message(message.chat.id, system.message.json)
+        # await johnny.send_message(message.chat.id, system.message.json)
         system.body()
     
     await echo(message.text)
-    await delete(alice, message)
+    await delete(johnny, message)
 
 
 # TODO: restart
 
 # Define an asynchronous handler for the /start command
-@alice.message_handler(commands=['start'])
+@johnny.message_handler(commands=['start'])
 async def start(message):
     global Chats, Users, Messages, Windows
 
@@ -398,14 +399,14 @@ async def start(message):
     # Sends its avatar as Window 0.
 
     pic_path = './pics/'
-    avatar_name = 'alice.jpg'
+    avatar_name = 'johnny.jpg'
     avatar_path = os.path.join(pic_path, avatar_name)
     
-    avatar = Window(alice, chat, user, avatar_path)
+    avatar = Window(johnny, chat, user, avatar_path)
     # Sends a console.
-    console = Window(alice, chat, user, keyboard=keyboard())
+    console = Window(johnny, chat, user, keyboard=keyboard())
     # to show user input and reactions
-    console2 = Window(alice, chat, user)
+    console2 = Window(johnny, chat, user)
     # stickers https://t.me/addstickers/parnoemoloko
 
     # Window.Head( Stickers, Pictures )
@@ -463,7 +464,7 @@ def keyboard(roll=False, dot=False, hi=False, arigato=False, slash=False, anime=
         keyboard.add(create_button('💢') )
     return keyboard
 # Buttons callback
-@alice.callback_query_handler(func=lambda call: True)
+@johnny.callback_query_handler(func=lambda call: True)
 async def handle_callback(call):
     global system, system_input
 
@@ -485,7 +486,7 @@ async def handle_callback(call):
         system.body('.', keyboard=keyboard(dot=True))
         system_input.body('/\\')
     if call.data == ('/'):
-        system.body('\n./\n/alice\n/anime\n/windows\n/pictures\n/pic\n/pics\n/screenshots\n/scrns\n/msg\n/flower', keyboard=keyboard(roll=True))
+        system.body('\n./\n/johnny\n/anime\n/windows\n/pictures\n/pic\n/pics\n/screenshots\n/scrns\n/msg\n/flower', keyboard=keyboard(roll=True))
         system_input.body('/')
     if call.data == ('🐕'):
         await anime(None)
@@ -494,7 +495,7 @@ async def handle_callback(call):
         global Windows
         # Call debug
         print(f'\n{call}')     
-        # alice.send_message(call.chat.id, call, parse_mode=None)
+        # johnny.send_message(call.chat.id, call, parse_mode=None)
         # system.text += f'\n{call.json}'
         for wnd in Windows:
             if wnd.message.id == call.message.id:
@@ -506,13 +507,13 @@ async def handle_callback(call):
         system_input = f'💢#{call.message.id}'
 
 # /roll 🎲
-@alice.message_handler(commands=['roll'])
+@johnny.message_handler(commands=['roll'])
 async def roll(message):
-    await alice.send_dice(message.chat.id, emoji=emojis.dice_emoji,
+    await johnny.send_dice(message.chat.id, emoji=emojis.dice_emoji,
                   disable_notification=True, reply_markup=keyboard(close=True))
 
 # Define a message handler for dice roll messages
-@alice.message_handler(content_types=['dice'])
+@johnny.message_handler(content_types=['dice'])
 async def handle_dice(message):
     # Get the value of the dice roll
     dice_value = message.dice.value
@@ -532,12 +533,12 @@ async def handle_dice(message):
     await echo(dice_value)
     # Wait for 5 seconds
     await asyncio.sleep(5)
-    await alice.delete_message(message.chat.id, message.message_id) #TODO: It was await delete(). What's the difference?
+    await johnny.delete_message(message.chat.id, message.message_id) #TODO: It was await delete(). What's the difference?
 
 # text
 # Handle all incoming text messages
 ###
-@alice.message_handler(func=lambda message: True)
+@johnny.message_handler(func=lambda message: True)
 async def listen(message):
     global system
     
@@ -549,24 +550,24 @@ async def listen(message):
     elif message.text == '/\\':
         system.body('.')
     elif message.text == '/':
-        system.body('\n./\n/alice\n/anime\n/windows\n/pictures\n/pic\n/msg\n/flower') #TODO: To function >> call.data update
+        system.body('\n./\n/johnny\n/anime\n/windows\n/pictures\n/pic\n/msg\n/flower') #TODO: To function >> call.data update
     elif message.text == '\/':
         system.zen = True
         system.body('\/')
     
     print(f'>>> {message.text}')
     await echo(message.text)
-    await delete(alice, message)
+    await delete(johnny, message)
 ###
 
 # sticker
 # Handle all incoming stickers
-@alice.message_handler(content_types=['sticker'])
+@johnny.message_handler(content_types=['sticker'])
 async def sticker(message):
     system.body(message.sticker.file_id)
     await echo(message.sticker.emoji)
-    await delete(alice, message)
+    await delete(johnny, message)
 ###
 ###
 
-asyncio.run(alice.infinity_polling())
+asyncio.run(johnny.infinity_polling())
