@@ -109,23 +109,25 @@ def listen(message):
         functions.send_message_to_owner(pepe, message, admin_chat_id)
         print(f'>> sent to admin\n>>\n{message.text}')
 
+
+import Owners
 # sticker
 # Handle all incoming stickers
 @pepe.message_handler(content_types=['sticker'])
 def handle_sticker(message):
-
+    #Trace all incoming messages
+    print(f"sticker:{message}")
+    #Send sticker info to owner chat
+    if owners.counts != '':
+        functions.send_sticker_to_owner(pepe, message, owner_chat_id)
 
     hashtags = re.findall(r'#\w+', message.reply_to_message.text)
     hashtags += re.findall(r'#\w+', message.text)
-for tag in hashtags:
-            pepe.send_sticker(tag[1:], message.sticker.file_id)
-    else:
-        #Trace all incoming messages
-        print(f"sticker:{message}")
-        #Send sticker info to owner chat
-        if owner_chat_id != '':
-            functions.send_sticker_to_owner(pepe, message, owner_chat_id)
 
+    for tag in hashtags:
+        pepe.send_sticker(tag[1:], message.sticker.file_id)
+    
+    
 
     # If sticker message has a reply - search for #chatid in a reply and send sticker back to #chatid
     if message.reply_to_message != None:

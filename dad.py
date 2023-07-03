@@ -106,10 +106,10 @@ def listen(message):
             page = context.new_page()
             page.goto(url)
             # Do something with the page, e.g., take a screenshot                        
-            screenshot_path = f'./screenshots/screen_#{message.chat.id}.{message.message_id}.png'
-            page.screenshot(path=screenshot_path)
-            with open(screenshot_path, 'rb') as photo:
-                dad.send_photo(message.chat.id, photo, f'@{screenshot_path}')
+            #screenshot_path = f'./screenshots/screen_#{message.chat.id}.{message.message_id}.png'
+            #page.screenshot(path=screenshot_path)
+            #with open(screenshot_path, 'rb') as photo:
+                #dad.send_photo(message.chat.id, photo, f'@{screenshot_path}')
 
             """ TODO: Find google.
             # Perform Google Mail SSO authentication

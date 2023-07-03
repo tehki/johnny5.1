@@ -21,7 +21,7 @@ nest_asyncio.apply()
 # 🤫
 # alice.
 # I'm here.
-# 
+# # hiding from pepe. 
 # . /\ \/ . / . o/ . /\ ./ ? . #
 
 global johnny
@@ -45,7 +45,7 @@ Windows = []
 global _debug
 _debug = False
 
-#TODO: add <pre> and other.
+#TODO: add other to fix errors
 def strip_html(text):
     output = text
     output = re.sub(r'<b>', '', output)
@@ -54,6 +54,8 @@ def strip_html(text):
     output = re.sub(r'</i>', '', output)
     output = re.sub(r'<em>', '', output)
     output = re.sub(r'</em>', '', output)
+    output = re.sub(r'<pre>', '', output)
+    output = re.sub(r'</pre>', '', output)
     output = re.sub(r'<code>', '', output)
     output = re.sub(r'</code>', '', output)
     output = re.sub(r'<strong>', '', output)

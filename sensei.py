@@ -1,7 +1,6 @@
 import config
 import os
 import telebot
-from selenium import webdriver
 
 #telegram_bot_token = os.environ.get('sensei_bot_token')
 
