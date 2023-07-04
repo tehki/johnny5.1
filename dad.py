@@ -58,11 +58,44 @@ def scrns(message):
     return screenshot_path
 
 import time
+
+# /goog /google
+@dad.message_handler(commands=['goog', 'google'])
+def google(message: types.Message) -> None:
+
+    with sync_playwright() as playwright:
+        #browser = playwright.chromium.launch(headless=False)
+        browser = playwright.firefox.launch(headless=False)
+        context = browser.new_context()
+        page = context.new_page()
+        
+        page.goto("https://www.google.com/account/about/?hl=en")
+        page.get_by_role("link", name="Go to your Google Account").click()
+        page.get_by_role("textbox", name="Email or phone").click()
+        page.get_by_role("textbox", name="Email or phone").fill("pepe.fundbot@gmail.com")
+        page.get_by_role("textbox", name="Email or phone").press("Enter")
+        page.get_by_role("textbox", name="Enter your password").fill(config.pepe_gmail_password)
+        page.get_by_role("textbox", name="Enter your password").press("Enter")
+        page.get_by_role("button", name="Google apps").click()
+
+        visiting(page, page.url, scrns(message), message.chat.id)
+
+        with page.expect_popup() as page1_info:
+            page.frame_locator("iframe[name=\"app\"]").get_by_role("link", name="Gmail").click()
+
+        visiting(page, 'Clicking Gmail.', scrns(message), message.chat.id)
+        page1 = page1_info.value
+        visiting(page1, 'Что дальше?', scrns(message), message.chat.id)
+        # ---------------------
+        context.close()
+        browser.close()
+
 # /ya
 @dad.message_handler(commands=['ya', 'yandex'])
 def ya(message: types.Message) -> None:
     with sync_playwright() as playwright:
-        browser = playwright.chromium.launch(headless=False)
+        #browser = playwright.chromium.launch(headless=False)
+        browser = playwright.firefox.launch(headless=False)
         context = browser.new_context()
         page = context.new_page()
         global _page
@@ -70,42 +103,29 @@ def ya(message: types.Message) -> None:
 
         dad.send_message(message.chat.id, 'i ya!')
 
+        if message.text[6:].startswith('/'):
+            page.goto("https://ya.ru/internet/")
+            visiting(_page, 'https://ya.ru/internet/', scrns(message), message.chat.id)
+
+            page.get_by_role("button", name="Измерить").click()
+            page.get_by_text("ТЕХНИЧЕСКАЯ ИНФОРМАЦИЯYandex https://ya.ru/internet/04.07.2023 04:38 UTC +03:00П").click()
+            dad.send_message(message.chat.id, page.content())
+            page.get_by_role("button", name="Скопировать в буфер обмена").click()
+            page.get_by_role("button", name="Поделиться").click()
+            visiting(page, 'Поделиться....', scrns(message), message.chat.id)
+            page.locator("label").filter(has_text="тёмный").click()
+            page.get_by_label("Ссылка на картинку").click()
+            dad.send_message(message.chat.id, page.content())
+
         if message.text[5:].startswith('.'):
             _page.goto("https://ya.ru/showcaptcha?cc=1&mt=61624D92A5F263EAF03B4107B1A7BD132D1DD5E9F5CAC5BA75DFBE142F27A599AB84580E321C7FB491AAABD40E0DB81BD5ADA63937AAC7736ECF83E2A3FD3EA7F8DE62BAB41A359BBF387B25D7B252C581C842D7BA4E15953A9E&retpath=aHR0cHM6Ly95YS5ydS8__7a5a45ebd9be8b8e52c78369eb4cc6ab&t=2/1688424824/bac6e5f5ef29fbe85e83a1d102a1219b&u=64e4c8bd-55170695-a5ce66b6-44ed7d14&s=274fa260001d12dbba0d23d211f5b07b")
-            page.get_by_role("search", name="Поиск в интернете").click()
+            _page.get_by_role("search", name="Поиск в интернете").click()
             visiting(page, 'Вы вошли? Yandex.', scrns(message), message.chat.id)
-            page.get_by_placeholder("найдётся всё").click()
-            page.get_by_placeholder("найдётся всё").fill("boo")
-            page.get_by_role("button", name="Найти").click()
-            with page.expect_popup() as page1_info:
-                visiting(page, ':O', scrns(message), message.chat.id)
-                page.get_by_role("link", name="boo.world").click()
-            page1 = page1_info.value
-            visiting(page, 'boo.world :O', scrns(message), message.chat.id)
-            page1.get_by_role("button", name="OK!").click()
-
-            page1.locator("#main-modal").click()
-            visiting(page1, "Что там дальше..?", scrns(message), message.chat.id)
-
-            with page1.expect_popup() as page2_info:
-                page1.get_by_role("button", name="ВХОД С GOOGLE").click()
-
-            visiting(page1, "Жамкаем на Google!", scrns(message), message.chat.id)
-            page2 = page2_info.value
-            page2.get_by_role("textbox", name="Телефон или адрес эл. почты").click()
-
-            visiting(page2, "Что дальше?", scrns(message), message.chat.id)
-            page2.get_by_role("textbox", name="Телефон или адрес эл. почты").fill("ilya.von.gruntal@gmail.com")
-            page2.get_by_role("textbox", name="Телефон или адрес эл. почты").press("Enter")
-            page2.get_by_role("link", name="Повторить попытку").click()
-            page2.get_by_role("textbox", name="Телефон или адрес эл. почты").click()
-            page2.get_by_role("textbox", name="Телефон или адрес эл. почты").fill("ilya.von.gruntal@gmail.com")
-            visiting(page2, "Что дальше?", scrns(message), message.chat.id)
-            page2.get_by_role("textbox", name="Телефон или адрес эл. почты").press("Enter")
-            with page2.expect_popup() as page3_info:
-                page2.get_by_role("link", name="Подробнее…").click()
-                visiting(page2, "Что дальше?", scrns(message), message.chat.id)
-            page3 = page3_info.value
+            _page.get_by_placeholder("найдётся всё").click()
+            _page.get_by_placeholder("найдётся всё").fill(f'{message.text[6:]}'})
+            _page.get_by_role("button", name="Найти").click()
+            _page.wait_for_selector('body')
+            visiting(_page, f'Ищем {message.text[6:]}')
 
         if message.text[4:].startswith('.'):
             _page.goto("https://ya.ru/showcaptcha?cc=1&mt=61624D92A5F263EAF03B4107B1A7BD132D1DD5E9F5CAC5BA75DFBE142F27A599AB84580E321C7FB491AAABD40E0DB81BD5ADA63937AAC7736ECF83E2A3FD3EA7F8DE62BAB41A359BBF387B25D7B252C581C842D7BA4E15953A9E&retpath=aHR0cHM6Ly95YS5ydS8__7a5a45ebd9be8b8e52c78369eb4cc6ab&t=2/1688424824/bac6e5f5ef29fbe85e83a1d102a1219b&u=64e4c8bd-55170695-a5ce66b6-44ed7d14&s=274fa260001d12dbba0d23d211f5b07b")
