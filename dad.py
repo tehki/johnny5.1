@@ -342,7 +342,7 @@ def run(message: types.Message) -> None:
         context = browser.new_context()
         page = context.new_page()
         page.goto("https://www.farandwide.com/s/the-worlds-most-peaceful-countries-936ebdfd97a94aa1")
-        
+        page.get_by_role("button", name="AGREE").click()
         visiting(page.get_by_title("Austria"), "Austria", screenshot_path, message.chat.id)
         page.mouse.wheel(0, 40000)
         visiting(page.get_by_title("Botswana"), "Botswana", screenshot_path, message.chat.id)
