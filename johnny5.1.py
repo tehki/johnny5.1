@@ -193,6 +193,8 @@ class Window(types.Message):
     async def async_upload(self):
         if self.message is not None:
             if self.photo is not None: #TODO: Check content-types
+                if isinstance(self.photo, str):
+                    
                 if self.photo.startswith('./'): #local file
                     with open(self.photo, 'rb') as photo:
                         self.pic = types.InputMediaPhoto(photo)
@@ -587,7 +589,7 @@ async def scrns(message):
 async def visiting(page, text, screenshot_path, chat_id):
     global www
 
-    print(f'visiting:{page}:{text}:{screenshot_path}:#{chat_id}')
+    print(f'visiting:{page}:{text}:{screenshot_path}:')
     if page is not None:    
         await page.screenshot(path=screenshot_path)
         with open(screenshot_path, 'rb') as photo:
@@ -610,7 +612,8 @@ async def web(message: types.Message) -> None:
     global www, _debug
     user = message.from_user
     chat = message.chat
-    www = Window(johnny, chat, user, pics.enso, keyboard(close=True, zen=True), debug = _debug)
+    www = Window(johnny, chat, user, pics.enso, keyboard(close=True), debug = _debug)
+    www.body('whalecum!', 'www:', keyboard(close=True, zen=True))
 
     async with async_playwright() as playwright:
         #browser = playwright.chromium.launch(headless=False)
@@ -620,11 +623,9 @@ async def web(message: types.Message) -> None:
         page = await context.new_page()
 
         await page.goto("https://www.tradingview.com/")
-        await www.body(f'{page.url}', 'www')
         await till_load_and_screenshot(page, message)
 
         await page.get_by_role("button", name="Open user menu").click()
-        await www.body(f'{page.url}', 'www')
         await till_load_and_screenshot(page, message)
 
         await page.get_by_role("menuitem", name="Sign in").click()
