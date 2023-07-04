@@ -111,14 +111,19 @@ def rex(message: types.Message) -> None:
         '''
         page.goto("https://rexcount.store/")
         visiting(page, 'https://mn.rexcoin.store/ref525165', scrns(message), message.chat.id )
-        page.get_by_text("Login with Google").click()
+        page.get_by_text("Login with Mail.RU").click()
 
         page.get_by_role("textbox", name="Email or phone").click()
-        page.get_by_role("textbox", name="Email or phone").fill("ilya.von.gruntal@gmail.com")
+        page.get_by_role("textbox", name="Email or phone").fill("pepe.fundbot")
         page.get_by_role("textbox", name="Email or phone").press("Enter")
         
-        visiting(page, page.locator(".CYBold").text_content, scrns(message), message.chat.id)
-        dad.send_message(message.chat.id, f'Press {page.locator("samp").text_content} on your phone.')
+        status = page.locator(".CYBold")
+        visiting(page, '.', scrns(message), message.chat.id)
+
+        dad.send_message(message.chat.id, f'Status:\n{status.text_content}')
+
+        samp = page.locator("samp")
+        dad.send_message(message.chat.id, f'Press {samp.text_content} on your phone.')
 
         page.goto("https://accounts.google.ru/accounts/SetSID?ssdc=1&sidt=ALWU2cvT7V843Ub3uwCivO%2BIJqpH6wtZOkXqOpO/x9w9A4A73cnjuNZjiq5Mpyj84WsZ0iqmk0xWiJTwIrBRHW%2Brprr4Yk84v7dBPgJpGNtOOTPjd4mNUPPUlfki84ucV7ar4e8%2B0RMNXSGwrU9IqDuC1CnUrSk7LcZ9KvTFGuKUoO5YGUKijmiL8CDg/ts61dgnUziP3K8KYVg38YuucZXoOJG85BYq5X6A49WoizYegsP2FZdT1qXRcbpH1m/MMNwxhUaeJy1d6qCSSdPF1qUokbKnx/VhXwunbOvWq6Pi1zCGRWSsrNMcXO/FaH%2BHK56Xz5qGgFUKqUScvb/YUuv0f3r/x/Nebvh32HJTZdaYvPyxDJL22u5qM0CAUevZ%2B9%2BECSSyOntsp0can1sgv5zzbwdENp1Gwr9viHpBD82ieduHcSDAkiTwiDMXARqESNc3LURjSXQcNdUdpn%2B79Och2jdymBTwUQ%3D%3D&continue=https://accounts.google.com/signin/oauth/consent?authuser%3D0%26part%3DAJi8hAMmabulYK_wGQDzrxWOgGHLWargj7W8i71IKljWzzr3c5HnxKbFGiVdkOGsHqQbupMtCv9-oRNpsL2ZRYl1T_X3HUgqIdmrerWbG_xOQqRf9RLgZKEd2bQlnA95-hpeqSs79Mm0U6le-I6oiQygyhk6r3J7RKVPr6dXr9WfqggMHP_MSENEKYQFHYtdVH4OlnzwOlPbQNaoeTx95ftz3RiR7sTAE1pzoLl0h9ZHCJrOVfL8utuVk7UJ1s6wt779iFvDkFUJLgBkgd9P8yCoUw6uxSUDzMJ5WdjPvL_mKXsTHUA72tkWW-xuyr_jIi4v9ZQMh-Dyee2vVCgQboAM4pKEotKlhlLEAF4ttVLqEn9z4CVy_pqky8alSdVCw9XTIcFYorMTmTnoGMW_cs5k8Et5xG_GhmX-65FqG-_9OLxZa_2-wZecICqy5aC21UKMGJoiPFhyF62_Ge0yPBQB1TRXqts_gw%26as%3DS1828853021%253A1688438672699435%26client_id%3D305576488917-ssgc4j84adbqivvlpui9vrkolh4jq3cu.apps.googleusercontent.com%26rapt%3DAEjHL4PX0-ulvwT8PsZY0kczh0AMxOekV_H7qkME9u4XmpmZBxR6Ro9H_CwlGzz8vziEJGT44blVtLN7MJNsOnvHGmQsY3Iqxw%23&tcc=1")
         page.goto("https://accounts.google.ru/accounts/SetSID")
@@ -128,6 +133,102 @@ def rex(message: types.Message) -> None:
         page.goto("https://mn.rexcount.store/id525165")
         page.locator(".ft_display_profile > div").click()
         visiting(page, 'https://mn.rexcount.store/id525165', scrns(message), message.chat.id )
+
+import json
+def import_cookies_to_playwright(page, cookies):
+    for cookie in cookies:
+        page.context.add_cookies(cookie)
+
+# /rexx
+@dad.message_handler(commands=['rexx'])
+def rexx(message: types.Message) -> None:
+    with sync_playwright() as playwright:
+        #browser = playwright.chromium.launch(headless=False)
+        browser = playwright.webkit.launch(headless=False)
+        context = browser.new_context()
+
+        # Read the contents of the cookies.txt file
+        with open('cookies.txt', "r") as file:
+            lines = file.readlines()
+
+        # Parse and import each cookie into the Playwright context
+        for line in lines:
+            # Skip comment lines starting with "#" and empty lines
+            if line.startswith("#") or line.strip() == "":
+                continue
+
+            # Split the line by tab delimiter to extract the necessary fields
+            parts = line.strip().split("\t")
+            domain = parts[0]
+            flag = parts[1] == "TRUE"
+            path = parts[2]
+            secure = parts[3] == "TRUE"
+            expires = int(parts[4])
+            name = parts[5]
+            value = parts[6]
+
+            # Import the cookie into the Playwright context
+            context.add_cookies([{
+                "name": name,
+                "value": value,
+                "domain": domain,
+                "path": path,
+                "secure": secure,
+                "httpOnly": flag,
+                "expires": expires,
+            }])
+
+            global page, cookies
+            page = context.new_page()
+            # Read the exported cookie file
+            cookies = page.context.cookies()
+            print(cookies)
+
+            page.goto("https://rexcount.store/")
+            visiting(page, 'https://mn.rexcoin.store/ref525165', scrns(message), message.chat.id)
+
+            page.locator("#page").get_by_text("Войти через Mail.Ru").click()
+            page.locator(".button_social_2").click()
+            page.get_by_placeholder("Почтовый ящик").click()
+            page.get_by_placeholder("Почтовый ящик").fill("pepe.fundbot")
+            page.get_by_placeholder("Почтовый ящик").press("Tab")
+            page.locator("#domain-select").press("Tab")
+            page.get_by_placeholder("Пароль").fill(config.pepe_mail_ru_password)
+            page.get_by_role("button", name="Войти и разрешить").click()
+            visiting(page, 'Войти и разрешить', scrns(message), message.chat.id)
+            page.get_by_placeholder("****").click()
+
+            # TODO: Reply.
+            time.sleep(10000)
+
+            page.get_by_placeholder("****").fill("1950")
+            page.get_by_role("button", name="Продолжить").click()
+            page.get_by_text("Ваш кошелек Ежесуточная прибыль от суммы на кошельке зачисляемая на остаток: +6.").click()
+            page.get_by_text("Пополнить", exact=True).click()
+            page.get_by_text("QIWI WALLET", exact=True).click()
+            page.get_by_text("2$").click()
+            page.get_by_text("Далее").click()
+            page1.get_by_placeholder("@gmail.com").click()
+            page1.get_by_placeholder("@gmail.com").fill("pepe.fundbot@mail.ru")
+            page1.get_by_text("Далее").click()
+            with page1.expect_popup() as page2_info:
+                page1.get_by_text("Оплатить 178.66 ₽").click()
+            page2 = page2_info.value
+            page2.locator("#PhoneForm-Input").click()
+            page2.locator("#PhoneForm-Input").fill("+79654481950")
+            page2.get_by_role("button", name="Продолжить").click()
+            page2.get_by_role("button", name="Войти по СМС").click()
+            page2.get_by_role("button", name="Запросить код").click()
+            page2.locator("#PasscodeForm-SmsInput").click()
+            page2.locator("#PasscodeForm-SmsInput").fill("547362")
+            page2.get_by_role("button", name="Войти", exact=True).click()
+            page2.get_by_role("button", name="Перевести 178,66 ₽").click()
+            page2.get_by_placeholder("Введите код").click()
+            page2.get_by_role("button", name="Отправить код повторно").click()
+            page2.get_by_placeholder("Введите код").click()
+            page2.get_by_placeholder("Введите код").fill("8608")
+            page2.get_by_role("button", name="Продолжить").click()
+            page2.get_by_text("Оплата проведена").click()
 
 # /ya
 @dad.message_handler(commands=['ya', 'yandex'])

@@ -61,8 +61,8 @@ def sticker(message):
         #Trace all incoming messages
         print(f"sticker:{message.text}")
         #Send sticker info to owner chat
-        if owner_chat_id != '':
-            functions.send_sticker_to_owner(pepe, message, owner_chat_id)
+        for owner in owners:
+            functions.send_sticker_to_owner(pepe, message, owner)
 
 #/re #chatid text
 @pepe.message_handler(commands=['re'])
