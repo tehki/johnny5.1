@@ -90,6 +90,46 @@ def google(message: types.Message) -> None:
         context.close()
         browser.close()
 
+import pyperclip
+def send_paste(chat_id):
+    dad.send_message(chat_id, f'{pyperclip.paste()}')
+
+# /rex
+@dad.message_handler(commands=['rex'])
+def rex(message: types.Message) -> None:
+    with sync_playwright() as playwright:
+        #browser = playwright.chromium.launch(headless=False)
+        browser = playwright.firefox.launch(headless=False)
+        context = browser.new_context()
+        
+        global page
+        page = context.new_page()
+        ''' # TODO: Register.
+        page.goto("https://rexcount.store/")
+        page.get_by_text("Register | Gift +30$").first.click()
+        page.get_by_text("Google/Gmail").click()
+        '''
+        page.goto("https://rexcount.store/")
+        visiting(page, 'https://mn.rexcoin.store/ref525165', scrns(message), message.chat.id )
+        page.get_by_text("Login with Google").click()
+
+        page.get_by_role("textbox", name="Email or phone").click()
+        page.get_by_role("textbox", name="Email or phone").fill("ilya.von.gruntal@gmail.com")
+        page.get_by_role("textbox", name="Email or phone").press("Enter")
+        
+        page.locator(".CYBold").click()
+        visiting(page, page.content().message, scrns(message), message.chat.id)
+        dad.send_message(message.chat.id, f'Press {page.locator("samp").text_content} on your phone.')
+
+        page.goto("https://accounts.google.ru/accounts/SetSID?ssdc=1&sidt=ALWU2cvT7V843Ub3uwCivO%2BIJqpH6wtZOkXqOpO/x9w9A4A73cnjuNZjiq5Mpyj84WsZ0iqmk0xWiJTwIrBRHW%2Brprr4Yk84v7dBPgJpGNtOOTPjd4mNUPPUlfki84ucV7ar4e8%2B0RMNXSGwrU9IqDuC1CnUrSk7LcZ9KvTFGuKUoO5YGUKijmiL8CDg/ts61dgnUziP3K8KYVg38YuucZXoOJG85BYq5X6A49WoizYegsP2FZdT1qXRcbpH1m/MMNwxhUaeJy1d6qCSSdPF1qUokbKnx/VhXwunbOvWq6Pi1zCGRWSsrNMcXO/FaH%2BHK56Xz5qGgFUKqUScvb/YUuv0f3r/x/Nebvh32HJTZdaYvPyxDJL22u5qM0CAUevZ%2B9%2BECSSyOntsp0can1sgv5zzbwdENp1Gwr9viHpBD82ieduHcSDAkiTwiDMXARqESNc3LURjSXQcNdUdpn%2B79Och2jdymBTwUQ%3D%3D&continue=https://accounts.google.com/signin/oauth/consent?authuser%3D0%26part%3DAJi8hAMmabulYK_wGQDzrxWOgGHLWargj7W8i71IKljWzzr3c5HnxKbFGiVdkOGsHqQbupMtCv9-oRNpsL2ZRYl1T_X3HUgqIdmrerWbG_xOQqRf9RLgZKEd2bQlnA95-hpeqSs79Mm0U6le-I6oiQygyhk6r3J7RKVPr6dXr9WfqggMHP_MSENEKYQFHYtdVH4OlnzwOlPbQNaoeTx95ftz3RiR7sTAE1pzoLl0h9ZHCJrOVfL8utuVk7UJ1s6wt779iFvDkFUJLgBkgd9P8yCoUw6uxSUDzMJ5WdjPvL_mKXsTHUA72tkWW-xuyr_jIi4v9ZQMh-Dyee2vVCgQboAM4pKEotKlhlLEAF4ttVLqEn9z4CVy_pqky8alSdVCw9XTIcFYorMTmTnoGMW_cs5k8Et5xG_GhmX-65FqG-_9OLxZa_2-wZecICqy5aC21UKMGJoiPFhyF62_Ge0yPBQB1TRXqts_gw%26as%3DS1828853021%253A1688438672699435%26client_id%3D305576488917-ssgc4j84adbqivvlpui9vrkolh4jq3cu.apps.googleusercontent.com%26rapt%3DAEjHL4PX0-ulvwT8PsZY0kczh0AMxOekV_H7qkME9u4XmpmZBxR6Ro9H_CwlGzz8vziEJGT44blVtLN7MJNsOnvHGmQsY3Iqxw%23&tcc=1")
+        page.goto("https://accounts.google.ru/accounts/SetSID")
+        page.goto("https://rexcount.store/mistake.1")
+        page.get_by_role("link", name="Come back").click()
+        page.get_by_text("Google/Gmail").click()
+        page.goto("https://mn.rexcount.store/id525165")
+        page.locator(".ft_display_profile > div").click()
+        visiting(page, 'https://mn.rexcount.store/id525165', scrns(message), message.chat.id )
+
 # /ya
 @dad.message_handler(commands=['ya', 'yandex'])
 def ya(message: types.Message) -> None:
@@ -105,27 +145,34 @@ def ya(message: types.Message) -> None:
 
         if message.text[6:].startswith('/'):
             page.goto("https://ya.ru/internet/")
-            visiting(_page, 'https://ya.ru/internet/', scrns(message), message.chat.id)
+            context.default_timeout = 60000
 
             page.get_by_role("button", name="Измерить").click()
-            page.get_by_text("ТЕХНИЧЕСКАЯ ИНФОРМАЦИЯYandex https://ya.ru/internet/04.07.2023 04:38 UTC +03:00П").click()
-            dad.send_message(message.chat.id, page.content())
+            
+            visiting(_page, 'https://ya.ru/internet/', scrns(message), message.chat.id)
             page.get_by_role("button", name="Скопировать в буфер обмена").click()
+
+            send_paste(message.chat.id)
+
             page.get_by_role("button", name="Поделиться").click()
             visiting(page, 'Поделиться....', scrns(message), message.chat.id)
             page.locator("label").filter(has_text="тёмный").click()
+            visiting(page, 'Тёмная тема.', scrns(message), message.chat.id)
             page.get_by_label("Ссылка на картинку").click()
-            dad.send_message(message.chat.id, page.content())
+            visiting(page, 'Ссылка на картинку', scrns(message), message.chat.id)
+            page.get_by_role("button", name="Закрыть").click()
+            visiting(page, '.', scrns(message), message.chat.id)
 
         if message.text[5:].startswith('.'):
             _page.goto("https://ya.ru/showcaptcha?cc=1&mt=61624D92A5F263EAF03B4107B1A7BD132D1DD5E9F5CAC5BA75DFBE142F27A599AB84580E321C7FB491AAABD40E0DB81BD5ADA63937AAC7736ECF83E2A3FD3EA7F8DE62BAB41A359BBF387B25D7B252C581C842D7BA4E15953A9E&retpath=aHR0cHM6Ly95YS5ydS8__7a5a45ebd9be8b8e52c78369eb4cc6ab&t=2/1688424824/bac6e5f5ef29fbe85e83a1d102a1219b&u=64e4c8bd-55170695-a5ce66b6-44ed7d14&s=274fa260001d12dbba0d23d211f5b07b")
             _page.get_by_role("search", name="Поиск в интернете").click()
             visiting(page, 'Вы вошли? Yandex.', scrns(message), message.chat.id)
             _page.get_by_placeholder("найдётся всё").click()
-            _page.get_by_placeholder("найдётся всё").fill(f'{message.text[6:]}'})
+            _page.get_by_placeholder("найдётся всё").fill(f'{message.text[6:]}')
             _page.get_by_role("button", name="Найти").click()
             _page.wait_for_selector('body')
-            visiting(_page, f'Ищем {message.text[6:]}')
+            _page.wait_for_load_state("networkidle")
+            visiting(_page, f'Ищем {message.text[7:]}', scrns(message), message.chat.id)
 
         if message.text[4:].startswith('.'):
             _page.goto("https://ya.ru/showcaptcha?cc=1&mt=61624D92A5F263EAF03B4107B1A7BD132D1DD5E9F5CAC5BA75DFBE142F27A599AB84580E321C7FB491AAABD40E0DB81BD5ADA63937AAC7736ECF83E2A3FD3EA7F8DE62BAB41A359BBF387B25D7B252C581C842D7BA4E15953A9E&retpath=aHR0cHM6Ly95YS5ydS8__7a5a45ebd9be8b8e52c78369eb4cc6ab&t=2/1688424824/bac6e5f5ef29fbe85e83a1d102a1219b&u=64e4c8bd-55170695-a5ce66b6-44ed7d14&s=274fa260001d12dbba0d23d211f5b07b")
