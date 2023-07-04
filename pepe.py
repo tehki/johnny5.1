@@ -8,9 +8,10 @@ import functions
 about_pic = "./pics/pepe.png"
 about_text = "Чё, как?"
 
-owners = [ config.serj_dinar_pepe_chat_id,
-          config.lilia_pepe_chat_id,
-          config.ilia_pepe_chat_id]
+
+# config.serj_dinar_pepe_chat_id, config.lilia_pepe_chat_id
+
+owners = [ config.ilia_pepe_chat_id ]
 
 pepe = telebot.TeleBot(config.pepe_bot_token)
 

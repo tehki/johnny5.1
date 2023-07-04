@@ -57,7 +57,80 @@ def scrns(message):
         screenshot_path += f'#{message.chat.id}.{message.message_id}.png'
     return screenshot_path
 
-import time
+def wait_till_load_and_screenshot(page, message):
+    page.wait_for_load_state("networkidle")
+    visiting(page, page.url, scrns(message), message.chat.id)
+
+# /proton
+@dad.message_handler(commands=['proton'])
+def proton(message: types.Message) -> None:
+
+    bot_fullname = "fullname.fundbot" # TODO: get from /proton register fullname.fundbot
+
+    with sync_playwright() as playwright:
+        browser = playwright.webkit.launch(headless=False)
+        context = browser.new_context()
+        page = context.new_page()
+
+        page.goto("https://proton.me/")
+        wait_till_load_and_screenshot(page, message)
+        
+        page.get_by_test_id("header-id").get_by_role("link", name="Create a free account").click()
+        wait_till_load_and_screenshot(page, message)
+        
+        page.get_by_role("link", name="Get Proton for free (new window)").click()
+        wait_till_load_and_screenshot(page,message)
+
+        page.frame_locator("iframe[title=\"Username\"]").get_by_test_id("input-input-element").click()
+        page.frame_locator("iframe[title=\"Username\"]").get_by_test_id("input-input-element").fill(bot_fullname)
+        wait_till_load_and_screenshot(page,message)
+        
+        page.get_by_label("Password", exact=True).click()
+        page.get_by_label("Password", exact=True).fill(config.johnny5_proton_password)
+        wait_till_load_and_screenshot(page,message)
+
+        page.get_by_role("button", name="Create account").click()
+        page.get_by_test_id("input-input-element").click()
+        page.get_by_test_id("input-input-element").fill("pepe.fundbot@gmail.com")
+        page.get_by_role("button", name="Get verification code").click()
+        page.get_by_test_id("input-input-element").click()
+        wait_till_load_and_screenshot(page,message)
+
+        page.get_by_test_id("input-input-element").fill(reply())
+
+        '''
+        page.get_by_role("button", name="Verify").click()
+        page.get_by_text("Congratulations on choosing privacy!To get started, choose a display name. This ").click()
+        page.get_by_test_id("input-input-element").click()
+        page.get_by_test_id("input-input-element").click()
+        page.get_by_test_id("input-input-element").click()
+        page.get_by_test_id("input-input-element").fill("Johnny 5.1")
+        page.get_by_role("button", name="Next").click()
+        page.get_by_role("button", name="Save selected").click()
+        page.goto("https://mail.proton.me/u/0/inbox?welcome=true")
+        with page.expect_popup() as page1_info:
+            page.get_by_role("button", name="Sign in with Google").click()
+        page1 = page1_info.value
+        page1.get_by_role("textbox", name="Телефон или адрес эл. почты").click()
+        page1.get_by_role("textbox", name="Телефон или адрес эл. почты").fill("pepe.fundbot@gmail.com")
+        page1.get_by_role("button", name="Далее").click()
+        page1.get_by_role("img", name="Изображение с проверочным кодом, которое помогает выявлять ботов").click()
+        page1.get_by_role("textbox", name="Введите текст, который вы видите или слышите").click()
+        page1.get_by_role("textbox", name="Введите текст, который вы видите или слышите").fill("eccdtiongw")
+        page1.get_by_role("button", name="Далее").click()
+        page1.get_by_role("textbox", name="Введите текст, который вы видите или слышите").fill("flogralsil")
+        page1.get_by_role("button", name="Далее").click()
+        page1.get_by_role("textbox", name="Enter your password").click()
+        page1.get_by_role("textbox", name="Enter your password").fill("!QAZ1qazz")
+        page1.get_by_role("button", name="Next").click()
+        page1.get_by_role("button", name="Next").click()
+        page1.get_by_role("link", name="Ilya Gruntal ilya.von.gruntal@gmail.com").click()
+        page1.get_by_role("button", name="Try again").click()
+'''
+    # ---------------------
+    context.close()
+    browser.close()
+
 
 # /goog /google
 @dad.message_handler(commands=['goog', 'google'])

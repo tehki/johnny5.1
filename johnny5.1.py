@@ -567,6 +567,62 @@ async def say(message):
     await johnny.send_message(message.chat.id, txt, reply_markup=kbdd)
     await echo(message.text)
     await delete(message)
+
+### WEB PART ###
+
+async def scrns(message):
+    screenshot_path = f'./screenshots/scrn_'
+    if message is not None:
+        screenshot_path += f'#{message.chat.id}.{message.message_id}.png'
+    return screenshot_path
+
+async def visiting(page, text, screenshot_path, chat_id):
+    print(f'visiting:{page}:{text}:{screenshot_path}:#{chat_id}')
+    if page is not None:    
+        await page.screenshot(path=screenshot_path)
+        with open(screenshot_path, 'rb') as photo:
+            await johnny.send_photo(chat_id, photo, f'{text} @ {screenshot_path}')
+
+async def till_load_and_screenshot(page, message):
+    page.wait_for_load_state("networkidle")
+    await visiting(page, page.url, await scrns(message), message.chat.id)
+
+from playwright.async_api import Playwright, async_playwright, expect
+# /web
+@johnny.message_handler(commands='web')
+async def web(message: types.Message) -> None:
+    async with async_playwright() as playwright:
+        #browser = playwright.chromium.launch(headless=False)
+        #browser = playwright.firefox.launch(headless=False)
+        browser = await playwright.webkit.launch(headless=False)
+        context = await browser.new_context()
+        page = await context.new_page()
+
+        await page.goto("https://www.tradingview.com/")
+        await till_load_and_screenshot(page, message)
+        await page.get_by_role("button", name="Open user menu").click()
+        await till_load_and_screenshot(page, message)
+        await page.get_by_role("menuitem", name="Sign in").click()
+        await till_load_and_screenshot(page, message)
+        await page.get_by_role("button", name="Email").click()
+        await till_load_and_screenshot(page, message)
+        await page.get_by_label("Email or Username").click()
+        await till_load_and_screenshot(page, message)
+        await page.get_by_label("Email or Username").fill(config.johnny5_proton_login)
+        await till_load_and_screenshot(page, message)
+        await page.get_by_label("Password").click()
+        await till_load_and_screenshot(page, message)
+        await page.get_by_label("Password").fill(config.johnny5_proton_password)
+        await till_load_and_screenshot(page, message)
+        await page.locator("label").filter(has_text="Remember me").locator("span").nth(1).click()
+        await till_load_and_screenshot(page, message)
+        await page.get_by_role("button", name="Sign in").click()
+        await asyncio.sleep(5)
+        await till_load_and_screenshot(page, message)
+        # ---------------------
+        await context.close()
+        await browser.close()
+
 # text
 # Handle all incoming text messages
 ###
