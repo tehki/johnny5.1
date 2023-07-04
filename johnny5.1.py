@@ -43,7 +43,7 @@ Windows = []
 
 # Debugging. Turn on/off.
 global _debug
-_debug = True
+_debug = False
 
 #TODO: check for more tags to add
 def strip_html(text):
@@ -415,8 +415,11 @@ async def start(message):
     global system, console, process
     
     system = Window(johnny, chat, user, pics.johnny, debug = _debug)
+
     process = Window(johnny, chat, user, debug = _debug)
     console = Window(johnny, chat, user, debug = _debug)
+
+
 
     system.text = "Hi there."
     system.keyboard = keyboard(hi=True)
@@ -444,7 +447,7 @@ async def start(message):
 def create_button(emoji):
     return types.InlineKeyboardButton(text=f'{emoji}', callback_data=f'{emoji}')
 # Create a default keyboard
-def keyboard(roll=False, dot=False, hi=False, arigato=False, slash=False, close=False, zen=False):
+def keyboard(roll=False, dot=False, hi=False, arigato=False, slash=False, close=False, zen=False, web=False):
     # Create an inline keyboard
     keyboard = types.InlineKeyboardMarkup()
     # Adding buttons
@@ -462,6 +465,8 @@ def keyboard(roll=False, dot=False, hi=False, arigato=False, slash=False, close=
         keyboard.add(create_button('💢') )
     if roll:
         keyboard.add(create_button('🎲'))
+    if web:
+        keyboard.add(create_button('🕸️'))
     return keyboard
 # Buttons callback
 @johnny.callback_query_handler(func=lambda call: True)
@@ -488,6 +493,9 @@ async def handle_callback(call):
         await roll (call.message)
         system.body('Nice.', keyboard=keyboard(slash=True))
         console.body('/roll')
+    if call.data == '🕸️':
+        await web (call.message)
+        system.body('/web 🕸️')
     if call.data == ('💢'):
         global Windows
         # Call debug
@@ -577,11 +585,15 @@ async def scrns(message):
     return screenshot_path
 
 async def visiting(page, text, screenshot_path, chat_id):
+    global www
+
     print(f'visiting:{page}:{text}:{screenshot_path}:#{chat_id}')
     if page is not None:    
         await page.screenshot(path=screenshot_path)
         with open(screenshot_path, 'rb') as photo:
-            await johnny.send_photo(chat_id, photo, f'{text} @ {screenshot_path}')
+            await www.head(photo)
+            await www.body(screenshot_path, 'www', keyboard(close=True, zen=True))
+            # await johnny.send_photo(chat_id, photo, f'{text} @ {screenshot_path}')
 
 async def till_load_and_screenshot(page, message):
     page.wait_for_load_state("networkidle")
@@ -591,6 +603,15 @@ from playwright.async_api import Playwright, async_playwright, expect
 # /web
 @johnny.message_handler(commands='web')
 async def web(message: types.Message) -> None:
+    global system, console, process
+
+#hack = message.text[5:] #TODO: kbd hacks
+
+    global www, _debug
+    user = message.from_user
+    chat = message.chat
+    www = Window(johnny, chat, user, pics.enso, keyboard(close=True, zen=True), debug = _debug)
+
     async with async_playwright() as playwright:
         #browser = playwright.chromium.launch(headless=False)
         #browser = playwright.firefox.launch(headless=False)
@@ -599,9 +620,13 @@ async def web(message: types.Message) -> None:
         page = await context.new_page()
 
         await page.goto("https://www.tradingview.com/")
+        await www.body(f'{page.url}', 'www')
         await till_load_and_screenshot(page, message)
+
         await page.get_by_role("button", name="Open user menu").click()
+        await www.body(f'{page.url}', 'www')
         await till_load_and_screenshot(page, message)
+
         await page.get_by_role("menuitem", name="Sign in").click()
         await till_load_and_screenshot(page, message)
         await page.get_by_role("button", name="Email").click()
@@ -642,6 +667,9 @@ async def listen(message):
     elif message.text == '\/':
         await zen(None)
         system.body('\/')
+    elif message.text == './':
+        await web(message)
+        system.body('/web 🕸️')
     
     print(f'>>> {message}')
     await echo(message.text)
