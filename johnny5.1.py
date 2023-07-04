@@ -194,7 +194,6 @@ class Window(types.Message):
         if self.message is not None:
             if self.photo is not None: #TODO: Check content-types
                 if isinstance(self.photo, str):
-                    
                 if self.photo.startswith('./'): #local file
                     with open(self.photo, 'rb') as photo:
                         self.pic = types.InputMediaPhoto(photo)
