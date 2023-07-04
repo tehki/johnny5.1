@@ -39,10 +39,11 @@ import functions
 from playwright.sync_api import Playwright, sync_playwright, expect
 
 def visiting(page, text, screenshot_path, chat_id):
-    page.screenshot(path=screenshot_path)
-    with open(screenshot_path, 'rb') as photo:
-        dad.send_photo(chat_id, photo, f'{text} @ {screenshot_path}')
-
+    print(f'visiting:{page}:{text}:{screenshot_path}:#{chat_id}')
+    if page is not None:    
+        page.screenshot(path=screenshot_path)
+        with open(screenshot_path, 'rb') as photo:
+            dad.send_photo(chat_id, photo, f'{text} @ {screenshot_path}')
 
 def extract_urls(text):
     pattern = r'(https?://\S+)'
@@ -65,25 +66,65 @@ def ya(message: types.Message) -> None:
         context = browser.new_context()
         page = context.new_page()
         global _page
-        _page = page.goto("https://ya.ru/showcaptcha?cc=1&mt=61624D92A5F263EAF03B4107B1A7BD132D1DD5E9F5CAC5BA75DFBE142F27A599AB84580E321C7FB491AAABD40E0DB81BD5ADA63937AAC7736ECF83E2A3FD3EA7F8DE62BAB41A359BBF387B25D7B252C581C842D7BA4E15953A9E&retpath=aHR0cHM6Ly95YS5ydS8__7a5a45ebd9be8b8e52c78369eb4cc6ab&t=2/1688424824/bac6e5f5ef29fbe85e83a1d102a1219b&u=64e4c8bd-55170695-a5ce66b6-44ed7d14&s=274fa260001d12dbba0d23d211f5b07b")
-        visiting(_page, 'ya.ru', scrns(message), message.chat.id)
+        _page = page
 
-        _page = page.get_by_role("checkbox", name="SmartCaptcha нужна проверка пользователя").click()
-        visiting(_page, 'smart capcha...', scrns(message), message.chat.id)
+        dad.send_message(message.chat.id, 'i ya!')
 
-        _page = page.get_by_role("img", name="Задание с картинкой").click()
-        visiting(_page, 'задание с картинкой...', scrns(message), message.chat.id)
+        if message.text[5:].startswith('.'):
+            _page.goto("https://ya.ru/showcaptcha?cc=1&mt=61624D92A5F263EAF03B4107B1A7BD132D1DD5E9F5CAC5BA75DFBE142F27A599AB84580E321C7FB491AAABD40E0DB81BD5ADA63937AAC7736ECF83E2A3FD3EA7F8DE62BAB41A359BBF387B25D7B252C581C842D7BA4E15953A9E&retpath=aHR0cHM6Ly95YS5ydS8__7a5a45ebd9be8b8e52c78369eb4cc6ab&t=2/1688424824/bac6e5f5ef29fbe85e83a1d102a1219b&u=64e4c8bd-55170695-a5ce66b6-44ed7d14&s=274fa260001d12dbba0d23d211f5b07b")
+            page.get_by_role("search", name="Поиск в интернете").click()
+            visiting(page, 'Вы вошли? Yandex.', scrns(message), message.chat.id)
+            page.get_by_placeholder("найдётся всё").click()
+            page.get_by_placeholder("найдётся всё").fill("boo")
+            page.get_by_role("button", name="Найти").click()
+            with page.expect_popup() as page1_info:
+                visiting(page, ':O', scrns(message), message.chat.id)
+                page.get_by_role("link", name="boo.world").click()
+            page1 = page1_info.value
+            visiting(page, 'boo.world :O', scrns(message), message.chat.id)
+            page1.get_by_role("button", name="OK!").click()
 
-        _page = page.get_by_placeholder("Строчные или прописные буквы").click()
-        # Create a ForceReply instance
-        force_reply = types.ForceReply(True)
-        dad.send_message(message.chat.id, 'Что там написано? Жду 10 секунд. Отвечай!', reply_markup=force_reply)
-        time.sleep(10)
-        # Ask a question and get user input
-        answer = input("Что там написано?")
-        # Process the answer
-        print("Your answer is:", answer)
-        reply(answer, message, page)
+            page1.locator("#main-modal").click()
+            visiting(page1, "Что там дальше..?", scrns(message), message.chat.id)
+
+            with page1.expect_popup() as page2_info:
+                page1.get_by_role("button", name="ВХОД С GOOGLE").click()
+
+            visiting(page1, "Жамкаем на Google!", scrns(message), message.chat.id)
+            page2 = page2_info.value
+            page2.get_by_role("textbox", name="Телефон или адрес эл. почты").click()
+
+            visiting(page2, "Что дальше?", scrns(message), message.chat.id)
+            page2.get_by_role("textbox", name="Телефон или адрес эл. почты").fill("ilya.von.gruntal@gmail.com")
+            page2.get_by_role("textbox", name="Телефон или адрес эл. почты").press("Enter")
+            page2.get_by_role("link", name="Повторить попытку").click()
+            page2.get_by_role("textbox", name="Телефон или адрес эл. почты").click()
+            page2.get_by_role("textbox", name="Телефон или адрес эл. почты").fill("ilya.von.gruntal@gmail.com")
+            visiting(page2, "Что дальше?", scrns(message), message.chat.id)
+            page2.get_by_role("textbox", name="Телефон или адрес эл. почты").press("Enter")
+            with page2.expect_popup() as page3_info:
+                page2.get_by_role("link", name="Подробнее…").click()
+                visiting(page2, "Что дальше?", scrns(message), message.chat.id)
+            page3 = page3_info.value
+
+        if message.text[4:].startswith('.'):
+            _page.goto("https://ya.ru/showcaptcha?cc=1&mt=61624D92A5F263EAF03B4107B1A7BD132D1DD5E9F5CAC5BA75DFBE142F27A599AB84580E321C7FB491AAABD40E0DB81BD5ADA63937AAC7736ECF83E2A3FD3EA7F8DE62BAB41A359BBF387B25D7B252C581C842D7BA4E15953A9E&retpath=aHR0cHM6Ly95YS5ydS8__7a5a45ebd9be8b8e52c78369eb4cc6ab&t=2/1688424824/bac6e5f5ef29fbe85e83a1d102a1219b&u=64e4c8bd-55170695-a5ce66b6-44ed7d14&s=274fa260001d12dbba0d23d211f5b07b")
+            visiting(_page, 'ya.ru', scrns(message), message.chat.id)
+            _page.get_by_role("checkbox", name="SmartCaptcha нужна проверка пользователя").click()
+            visiting(_page, 'smart capcha...', scrns(message), message.chat.id)
+            _page.get_by_role("img", name="Задание с картинкой").click()
+            visiting(_page, 'задание с картинкой...', scrns(message), message.chat.id)
+            _page.get_by_placeholder("Строчные или прописные буквы").click()
+            # Create a ForceReply instance
+            force_reply = types.ForceReply(True)
+            dad.send_message(message.chat.id, 'Что там написано? Жду 10 секунд. Отвечай!', reply_markup=force_reply)
+            time.sleep(10)
+            # Ask a question and get user input
+            answer = input("Что там написано?")
+            # Process the answer
+            print("Your answer is:", answer)
+            reply(answer, message, page)
+        
             # ---------------------
     context.close()
     browser.close()
@@ -93,37 +134,6 @@ def reply(answer, message, page):
     _page = page.get_by_placeholder("Строчные или прописные буквы").fill(_reply)
     visiting(_page, f'{_reply}, говоришь?', scrns(message), message.chat.id) 
     page.get_by_placeholder("Строчные или прописные буквы").press("Enter")
-    page.get_by_role("search", name="Поиск в интернете").click()
-    visiting(page, 'Вы вошли? Yandex.', scrns(message), message.chat.id)
-    page.get_by_placeholder("найдётся всё").click()
-    page.get_by_placeholder("найдётся всё").fill("boo")
-    page.get_by_role("button", name="Найти").click()
-    with page.expect_popup() as page1_info:
-        visiting(page, ':O', scrns(message), message.chat.id)
-        page.get_by_role("link", name="boo.world").click()
-    page1 = page1_info.value
-    visiting(page, 'boo.world :O', scrns(message), message.chat.id)
-    page1.get_by_role("button", name="OK!").click()
-
-    page1.locator("#main-modal").click()
-    visiting(page1, "Что там дальше..?", scrns(message), message.chat.id)
-    visiting
-    page1.locator("#authGhost").click(position={"x":191,"y":199})
-    with page1.expect_popup() as page2_info:
-        page1.get_by_role("button", name="ВХОД С GOOGLE").click()
-    page2 = page2_info.value
-    page2.get_by_role("textbox", name="Телефон или адрес эл. почты").click()
-    page2.get_by_role("textbox", name="Телефон или адрес эл. почты").fill("ilya.von.gruntal@gmail.com")
-    page2.get_by_role("textbox", name="Телефон или адрес эл. почты").press("Enter")
-    page2.get_by_role("link", name="Повторить попытку").click()
-    page2.get_by_role("textbox", name="Телефон или адрес эл. почты").click()
-    page2.get_by_role("textbox", name="Телефон или адрес эл. почты").fill("ilya.von.gruntal@gmail.com")
-    page2.get_by_role("textbox", name="Телефон или адрес эл. почты").press("Enter")
-    with page2.expect_popup() as page3_info:
-        page2.get_by_role("link", name="Подробнее…").click()
-    page3 = page3_info.value
-
-
 
 # /visit 
 @dad.message_handler(commands=['visit'])
