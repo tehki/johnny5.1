@@ -194,16 +194,18 @@ class Window(types.Message):
         if self.message is not None:
             if self.photo is not None: #TODO: Check content-types
                 if isinstance(self.photo, str):
-                if self.photo.startswith('./'): #local file
-                    with open(self.photo, 'rb') as photo:
-                        self.pic = types.InputMediaPhoto(photo)
+                    if self.photo.startswith('./'): #local file
+                        with open(self.photo, 'rb') as photo:
+                            self.pic = types.InputMediaPhoto(photo)
+                            self.message = await self.bot.edit_message_media(self.pic, self.chat.id, self.message.id)
+                    elif self.photo.startswith('https://') or self.photo.startswith('http://'): #url
+                        self.pic = types.InputMediaPhoto(self.photo)
                         self.message = await self.bot.edit_message_media(self.pic, self.chat.id, self.message.id)
-                elif self.photo.startswith('https://') or self.photo.startswith('http://'): #url
-                    self.pic = types.InputMediaPhoto(self.photo)
-                    self.message = await self.bot.edit_message_media(self.pic, self.chat.id, self.message.id)
-                else: #fileid?
-                    self.pic = types.InputMediaPhoto(self.photo)
-                    self.message = await self.bot.edit_message_media(self.pic, self.chat.id, self.message.id)
+                    else: #fileid?
+                        self.pic = types.InputMediaPhoto(self.photo)
+                        self.message = await self.bot.edit_message_media(self.pic, self.chat.id, self.message.id)
+                else: # TODO: ?
+                    self.message = await self.bot.edit_message_media(photo, self.message.chat.id, self.message.message_id) 
 
     async def async_create(self):
         if self.message is None:
