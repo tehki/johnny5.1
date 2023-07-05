@@ -18,6 +18,11 @@ from typing import Dict, List, Optional, Union
 import nest_asyncio
 nest_asyncio.apply()
 
+# Debugging. Turn on/off.
+global _debug
+process_delay = 5
+_debug = True
+
 class Window(types.Message):
     title = ''
     text = ''
@@ -64,7 +69,7 @@ class Window(types.Message):
                 success = True
                 break
         return success   
-    def body(self, text=None, title=None, keyboard=None):
+    async def body(self, text=None, title=None, keyboard=None):
         output = ''
         
         if not self._zen:
@@ -82,23 +87,26 @@ class Window(types.Message):
         else:
             self.output = None
 
-        self.update()
+        await self.update()
 
-    def head(self, photo=None):
+    async def head(self, photo=None):
         if photo != None:
             self.photo = photo
-        self.upload()
+        await self.upload()
 
-    def zen(self):
+    async def zen(self):
         self._zen = True
-        self.head()
-        self.body()
-    def update(self):
-        update_task = self.loop.create_task(self.async_update()) 
+        await self.head()
+        await self.body()
+
+    async def update(self):
+        update_task = self.loop.create_task(self.async_update())
         self.loop.run_until_complete(asyncio.gather(update_task))
-    def upload(self):
+
+    async def upload(self):
         upload_task = self.loop.create_task(self.async_upload()) 
         self.loop.run_until_complete(asyncio.gather(upload_task))
+
     def to_json(self):
         return json.dumps(self.to_dict())
     def to_dict(self):
@@ -107,24 +115,26 @@ class Window(types.Message):
                 "chatid": self.chat.id,
                 "text": self.text}
     async def async_update(self):
-        global system, _debug
+        global _debug
         if self.message is not None:
             if _debug:
                 print(f'{self.message.message_id}:async_update:output({len(self.output)}):\n{self.output}\nmessage.caption:\n{self.message.caption}\nmessage.text:\n{self.message.text}')
+                if self.output is not None:
+                    print(f'len of strip output:{len(strip_html(self.output))}')
                 if self.message.caption is not None:
                     print(f'len of strip caption:{len(strip_html(self.message.caption))}')
                 if self.message.text is not None:      
                     print(f'len of strip text:{len(strip_html(self.message.text))}')
-                if self.output is not None:
-                    print(f'len of stip output:{len(strip_html(self.output))}')
 
             if self.photo is not None:
                 if strip_html(self.message.caption) != strip_html(self.output):
                     keyboard = None if self._zen else self.keyboard
+                    if _debug: print(f'UPDATING:\n{self.output}')
                     self.message = await self.bot.edit_message_caption(self.output, self.chat.id, self.message.id, parse_mode=self.parse_mode, reply_markup=keyboard)
             elif self.output != '':
                 if strip_html(self.message.text) != strip_html(self.output):
                     keyboard = None if self._zen else self.keyboard
+                    if _debug: print(f'UPDATING:\n{self.output}')
                     self.message = await self.bot.edit_message_text(self.output, self.chat.id, self.message.message_id, parse_mode=self.parse_mode, reply_markup=keyboard)
 
     async def async_upload(self):
@@ -165,11 +175,6 @@ class Window(types.Message):
 # # hiding from pepe. 
 # . /\ \/ . / . o/ . /\ ./ ? . #
 
-# Debugging. Turn on/off.
-global _debug
-process_delay = 5
-_debug = True
-
 global johnny
 johnny = AsyncTeleBot (config.johnny5_bot_token)
 # johnny.parse_mode = None
@@ -209,36 +214,37 @@ def strip_html(text):
         output = re.sub(r'</code>', '', output)
         output = re.sub(r'<strong>', '', output)
         output = re.sub(r'</strong>', '', output)
-        if output.startswith('\n'): output = output.lstrip('\n')
-        if output.endswith('\n'): output = output.rstrip('\n')
+        output = re.sub(r'\n', '', output)
+        output = output.strip('\n')
+        output = output.strip()
 
-        if _debug: print(f"output[0]:'{output[0]}'")
+        if _debug: print(f"output[0]:'{output[0]}' output[{len(output)}]:{output}")
         return output
     return text
 
 async def echo(text):
     global console
     if console is not None:
-        console.body(text)
+        await console.body(text)
 async def delete(message):
     global johnny
     if message is not None:
         if await johnny.delete_message(message.chat.id, message.message_id):
             message = None
-async def update(): # delay in seconds
+
+async def update():
     global Windows, system
     if system._zen:
-        if system.photo != None: # no delay for system.head
-            system.head(pics.zen) # in zen mode
+        if system.photo != None:
+            await system.head(pics.zen)
         for window in Windows:
-            window.zen() # no delay for window.zen() when system is in zen mode
-    else:
-        for window in Windows:
-            window.body()
+            await window.zen()
+    for window in Windows:
+        await window.update()
 
 import emojis
 # Keyboard hack.
-def kbd(hack):
+async def kbd(hack):
     dot = False
     close = False
     slash = False
@@ -258,7 +264,7 @@ def kbd(hack):
     global console #console superhack ../\'
     if console is not None:
         if txt[4:].startswith("'"):
-            console.body(keyboard=kbdd)
+            await console.body(keyboard=kbdd)
        
     return kbdd
 # Create a button
@@ -294,34 +300,34 @@ async def handle_callback(call):
 
     if call.data == '.': # call system
         if system is not None:
-            system.body('o/', keyboard=keyboard(slash=True))
+            await system.body('o/', keyboard=keyboard(slash=True))
         if console is not None:
-            console.body('.')
+            await console.body('.')
 
     if call.data == ('/'):
-        system.body('/say Hi!', keyboard=keyboard(web=True))
-        console.body('/')
+        await system.body('/say Hi!', keyboard=keyboard(web=True))
+        await console.body('/')
 
     if call.data == '🕸️':
         await web (call.message)
-        system.body('/web 🕸️', keyboard=keyboard(arigato=True))
+        await system.body('/web 🕸️', keyboard=keyboard(arigato=True))
 
     if call.data == ('\/'):
         await zen(None)
-        system.body('\/')
-        console.body('\/')
+        await system.body('\/')
+        await console.body('\/')
 
     if call.data == 'o/':
-        system.body('/\\', keyboard=keyboard(arigato=True))
-        console.body('o/')
+        await system.body('/\\', keyboard=keyboard(arigato=True))
+        await console.body('o/')
     if call.data == ('/\\'):
-        system.body('.', keyboard=keyboard(dot=True))
-        console.body('/\\')
+        await system.body('.', keyboard=keyboard(dot=True))
+        await console.body('/\\')
 
     if call.data == '🎲':
         await roll (call.message)
-        system.body('Nice.', keyboard=keyboard(slash=True))
-        console.body('/roll')
+        await system.body('Nice.', keyboard=keyboard(slash=True))
+        await console.body('/roll')
 
     if call.data == ('💢'):
         console = f'💢#{call.message.id}'
@@ -375,17 +381,17 @@ async def start(message):
     system.title = f'~system'
 
     console.text = f'{system.user.username}'
-    console.title = f'{emojis.window} ~console'
+    console.title = f'{emojis.window}~console'
 
     process.title = '~process'
 
+    await system.head()
+    await system.body()
+    await console.body()
     while True:
+        await process.body(f"{time.strftime('%H:%M:%S')}") # TODO: Update per minute counter
         await asyncio.sleep(process_delay)
-
-        process.text = f"{time.strftime('%H:%M:%S')}"
         
-        await update() # TODO: Update per minute counter
-
 #TODO: "Object of type Window is not JSON serializable" for Windows
 # /windows
 @johnny.message_handler(commands=['windows'])
@@ -396,7 +402,7 @@ async def windows(message):
         for wnd in Windows:
             system.text += f'\n{wnd.to_json()}'
 
-        system.body()
+        await system.body()
     await echo(message.text)
     await delete(message)
 
@@ -410,32 +416,32 @@ async def listen(message):
 
     if message.text == '.': # create new console
         if system is not None:
-            system.body('o/')
+            await system.body('o/')
         if console is not None:
             console.destroy()    
         console = Window(johnny, message.chat, message.from_user)
-        console.body(f'{message.from_user.username}', f'{emojis.window} ~console')
+        await console.body(f'{message.from_user.username}', f'{emojis.window} ~console')
 
     if message.text == 'o/':
         if system is not None:
-            system.body('/\\')
+            await system.body('/\\')
 
         new = Window(johnny, message.chat, message.from_user)
         # new = deepcopy(system)
-        new.body('hello? who am i?')
+        await new.body('hello? who am i?')
 
     if system is not None:    
         if message.text == '/\\':
             system._zen = False
-            system.body('.')
+            await system.body('.')
         elif message.text == '/':
-            system.body('/say Hi!') #TODO: To function >> call.data update
+            await system.body('/say Hi!') #TODO: To function >> call.data update
         elif message.text == '\/':
             await zen(None)
-            system.body('\/')
+            await system.body('\/')
         elif message.text == './':
             await web(message)
-            system.body('/web 🕸️')
+            await system.body('/web 🕸️')
 
     await delete(message) # deletes the message
 
@@ -458,7 +464,7 @@ async def pictures(message):
 
         for picture in pictures:
             system.text += f"\n{picture}"
-        system.body()
+        await system.body()
 
         if _debug:
             print(f"/pics OK? {system.text} @ system")
@@ -484,7 +490,7 @@ async def screenshots(message):
 
         for screenshot in screenshots:
             system.text += f"\n{screenshot}"
-        system.body()
+        await system.body()
 
         await echo(message.text)
         await delete(message)
@@ -512,15 +518,15 @@ async def pic(message):
         print(f"/pic:{message.text}")
         if message.text == '/pic':
             system.text = system.message.photo[0].file_id
-            system.body()
+            await system.body()
         else:
             url = message.text[5:]
             system.photo = url
             system.text = system.message.photo[0].file_id
 
             # print(f"/pic {url} head updated.\n{system.message.photo}")
-            system.head()
-            system.body()
+            await system.head()
+            await system.body()
         
     await echo(message.text)
     await delete(message)
@@ -532,7 +538,7 @@ async def sys(message):
     if system is not None:
         system.text = f'\nsystem:{system.to_json()}'
         system.text += f'\nphoto:{system.message.photo[0]}'
-        system.body()
+        await system.body()
     
     await echo(message.text)
     await delete(message)
@@ -560,7 +566,7 @@ async def handle_dice(message):
     if dice_value < 3:
         system.text = f"Urgh... it's a {dice_value}. Better luck next time."
         system.keyboard = keyboard(dot=True, slash=True)
-    system.body()
+    await system.body()
 
     await echo(dice_value)
     await johnny.delete_message(message.chat.id, message.message_id) #TODO: It was await delete(). What's the difference?
@@ -576,7 +582,7 @@ async def scrns(message):
 async def visiting(page, text, screenshot_path, chat_id):
     global www
 
-    www.body(f'visiting\n{text}\n{screenshot_path}')
+    await www.body(f'visiting\n{text}\n{screenshot_path}')
     if page is not None:    
         await page.screenshot(path=screenshot_path)
         await www.head(screenshot_path)
@@ -597,7 +603,7 @@ async def web(message: types.Message) -> None:
     chat = message.chat
 
     www = Window(johnny, chat, user, pics.enso, keyboard(close=True))
-    www.body('whalecum!', 'www:', keyboard(close=True, zen=True))
+    await www.body('whalecum!', 'www:', keyboard(close=True, zen=True))
 
     async with async_playwright() as playwright:
         browser = await playwright.chromium.launch(headless=False)
@@ -638,7 +644,7 @@ async def web(message: types.Message) -> None:
 @johnny.message_handler(content_types=['sticker'])
 async def sticker(message):
     global system
-    system.body(message.sticker.file_id)
+    await system.body(message.sticker.file_id)
     await echo(message.sticker.emoji)
     await delete(message)
 ###
