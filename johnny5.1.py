@@ -25,6 +25,8 @@ class Window(types.Message):
     _zen = False
 
     def __init__(self, bot, chat, user, photo = None, keyboard = None, parse_mode = None, debug = False):
+        self.id: int = None
+
         self.loop = asyncio.get_event_loop()
         self._debug: bool = debug
 
@@ -65,6 +67,7 @@ class Window(types.Message):
         return success   
     def body(self, text=None, title=None, keyboard=None):
         output = ''
+        
         if not self._zen:
             if title != None:
                 self.title = title
@@ -72,21 +75,21 @@ class Window(types.Message):
                 self.text = text
             if keyboard != None:
                 self.keyboard = keyboard
-
             if self.title != None:
-                output += f"<b>{self.title}</b>"
+                output += f"<b>{self.title}</b>\n"
             if self.text != None:
                 output += f'<code>{self.text}</code>'
-
             self.output = output
         else:
             self.output = None
 
         self.update()
+
     def head(self, photo=None):
         if photo != None:
             self.photo = photo
         self.upload()
+
     def zen(self):
         self._zen = True
         self.head()
@@ -118,16 +121,13 @@ class Window(types.Message):
                 if self._debug:
                     print(f'#message.caption:{self.message.caption}\n#self.input:{self.output}')
                 if strip_html(self.message.caption) != strip_html(self.output):
-                    keyboard = None if system._zen else self.keyboard
-                    if (self._debug):
-                        print(f'sending edit_message_caption')
+                    keyboard = None if self._zen else self.keyboard
                     self.message = await self.bot.edit_message_caption(self.output, self.chat.id, self.message.id, parse_mode=self.parse_mode, reply_markup=keyboard)
             elif self.output != '':
                 if strip_html(self.message.text) != strip_html(self.output):
-                    keyboard = None if system._zen else self.keyboard
-                    if (self._debug):
-                        print(f'sending edit_message_text')
+                    keyboard = None if self._zen else self.keyboard
                     self.message = await self.bot.edit_message_text(self.output, self.chat.id, self.message.message_id, parse_mode=self.parse_mode, reply_markup=keyboard)
+
     async def async_upload(self):
         if self.message is not None:
             if self.photo is not None: #TODO: Check content-types
@@ -149,9 +149,12 @@ class Window(types.Message):
             if self.photo is not None:
                 with open(self.photo, 'rb') as photo:
                     self.pic = photo
-                    self.message = await self.bot.send_photo(self.chat.id, self.pic, "Creating new avatar...", parse_mode=self.parse_mode)
+                    self.message = await self.bot.send_photo(self.chat.id, self.pic, emojis.window, parse_mode=self.parse_mode)
             else:
-                self.message = await self.bot.send_message(self.chat.id, "Creating new window...", parse_mode=self.parse_mode)
+                self.message = await self.bot.send_message(self.chat.id, emojis.window, parse_mode=self.parse_mode)
+        if self.message is not None:
+            self.id = self.message.message_id
+
     async def async_destroy(self):
         if self.message is not None:
             await self.bot.delete_message(self.chat.id, self.message.message_id)
@@ -204,7 +207,6 @@ def strip_html(text):
             output = output.rstrip('\n')
         return output
     return text
-
 async def echo(text):
     global console
     if console is not None:
@@ -214,7 +216,6 @@ async def delete(message):
     if message is not None:
         if await johnny.delete_message(message.chat.id, message.message_id):
             message = None
-
 async def update(delay): # delay in seconds
     global Windows, system
     if system._zen:
@@ -227,6 +228,7 @@ async def update(delay): # delay in seconds
         for window in Windows:
             window.body()
 
+import emojis
 # Keyboard hack.
 def kbd(hack):
     dot = False
@@ -333,22 +335,63 @@ async def say(message):
     await echo(message.text)
     await delete(message)
 
+# /start
+@johnny.message_handler(commands=['start'])
+async def start(message):
+    global Chats, Users, Messages, Windows
+
+    # TODO: Needs to be done for every inc. message and command
+    # Gets a chat and user.
+    user = message.from_user
+    chat = message.chat
+
+    # Updates the list
+    Chats.append(chat)
+    Users.append(user)
+    Messages.append(message)
+    
+    # Creates system, console and process
+    global system, console, process
+
+    system = Window(johnny, chat, user, pics.johnny)
+    process = Window(johnny, chat, user)
+    console = Window(johnny, chat, user)
+
+    system.text = f"{system.first_name()}"
+    system.keyboard = keyboard(hi=True)
+    system.title = f'~system'
+
+    console.text = f'{system.user.username}'
+    console.title = f'{emojis.window} ~console'
+
+    # TODO: debug mode
+    # if debug: system.title = f"#{avatar.message.id}:@{avatar.name()} {avatar.first_name()}:{avatar.chat.id}\n"
+    # if debug: process.title = f"#{console.message.id}\n"
+    # if debug: console.title = f"#{console.message.id}:@{console.user.username} {console.user.full_name}:{console.chat.id}\n"
+    print("While TRUE: >>")
+    processing_speed = 0.1 # TODO: processing slow-down for group chats
+    process.title = '~process'
+    while True:
+        process.text = f"{time.strftime('%H:%M:%S')}"
+        await update(processing_speed)
+
 # text
 # Handle all incoming text messages
-###
 @johnny.message_handler(func=lambda message: True)
 async def listen(message):
-    global system
+    global system, console
     if _debug: print(f'>>> {message}')
     await echo(message.text) # console echoes input
-    await delete(message) # deletes the message
 
-    if message.text == '.':
+    if message.text == '.': # create new console
         if system is not None:
             system.body('o/')
-        else:
-            message.text = '󠀠🗔'
-            await say(message)
+        if console is not None:
+            console.destroy()
+            
+        console = Window(johnny, message.chat, message.from_user)
+        console.body(f'', f'~console')
+        
 
     if system is not None:
         if message.text == 'o/':
@@ -364,50 +407,8 @@ async def listen(message):
         elif message.text == './':
             await web(message)
             system.body('/web 🕸️')
-###
 
-
-# /start
-@johnny.message_handler(commands=['start'])
-async def start(message):
-    global Chats, Users, Messages, Windows
-    global _debug
-    #print(f'MESSAGE:\n{message}')
-
-    # TODO: Needs to be done for every inc. message and command
-    # Gets a chat and user.
-    user = message.from_user
-    chat = message.chat
-
-    # Updates the list
-    Chats.append(chat)
-    Users.append(user)
-    Messages.append(message)
-    
-    # Creates system, console and process
-    global system, console, process
-
-    system = Window(johnny, chat, user, pics.johnny, _debug)
-    process = Window(johnny, chat, user, _debug)
-    console = Window(johnny, chat, user, _debug)
-
-    system.text = f"Hi there. I'm {system.first_name()}."
-    system.keyboard = keyboard(hi=True)
-    system.title = f'~system'
-
-    console.text = f'And you are {system.user.first_name}. Am i right?'
-    console.title = f'~console'
-
-    # TODO: debug mode
-    # if debug: system.title = f"#{avatar.message.id}:@{avatar.name()} {avatar.first_name()}:{avatar.chat.id}\n"
-    # if debug: process.title = f"#{console.message.id}\n"
-    # if debug: console.title = f"#{console.message.id}:@{console.user.username} {console.user.full_name}:{console.chat.id}\n"
-    print("While TRUE: >>")
-    processing_speed = 0.1 # TODO: processing slow-down for group chats
-    process.title = '~process'
-    while True:
-        process.text = f"{time.strftime('%H:%M:%S')}"
-        await update(processing_speed)
+    await delete(message) # deletes the message
 
 #TODO: "Object of type Window is not JSON serializable" for Windows
 # /windows
