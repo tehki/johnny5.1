@@ -24,11 +24,10 @@ class Window(types.Message):
     output = ''
     _zen = False
 
-    def __init__(self, bot, chat, user, photo = None, keyboard = None, parse_mode = None, debug = False):
+    def __init__(self, bot, chat, user, photo = None, keyboard = None, parse_mode = None):
         self.id: int = None
 
         self.loop = asyncio.get_event_loop()
-        self._debug: bool = debug
 
         self.bot: AsyncTeleBot = bot
         self.chat: types.Chat = chat
@@ -53,8 +52,8 @@ class Window(types.Message):
         self.loop.run_until_complete(asyncio.gather(create_task))
     def destroy(self): # TODO: Test
         success = False
-        global Windows
-        if self._debug:
+        global Windows, _debug
+        if _debug:
             print(f'{self.message.message_id}:destroy\nwindows:\n{Windows}')  
         # Find and remove an instance from the list
         for win in Windows:
@@ -108,18 +107,18 @@ class Window(types.Message):
                 "chatid": self.chat.id,
                 "text": self.text}
     async def async_update(self):
-        global system
+        global system, _debug
         if self.message is not None:
-            if self._debug:
-                print(f'{self.message.message_id}:async_update:output({len(self.output)}):{self.output}')
-            """ TODO: add more html filters
-            <a href = 'http://www.example.com/'> inline URL </a>
-            <a href = 'tg://user?id=123456789'> inline mention of a user</a>
-            <pre> pre - formatted fixed-width code block</pre>
-            """
+            if _debug:
+                print(f'{self.message.message_id}:async_update:output({len(self.output)}):\n{self.output}\nmessage.caption:\n{self.message.caption}\nmessage.text:\n{self.message.text}')
+                if self.message.caption is not None:
+                    print(f'len of strip caption:{len(strip_html(self.message.caption))}')
+                if self.message.text is not None:      
+                    print(f'len of strip text:{len(strip_html(self.message.text))}')
+                if self.output is not None:
+                    print(f'len of stip output:{len(strip_html(self.output))}')
+
             if self.photo is not None:
-                if self._debug:
-                    print(f'#message.caption:{self.message.caption}\n#self.input:{self.output}')
                 if strip_html(self.message.caption) != strip_html(self.output):
                     keyboard = None if self._zen else self.keyboard
                     self.message = await self.bot.edit_message_caption(self.output, self.chat.id, self.message.id, parse_mode=self.parse_mode, reply_markup=keyboard)
@@ -168,7 +167,8 @@ class Window(types.Message):
 
 # Debugging. Turn on/off.
 global _debug
-_debug = False
+process_delay = 5
+_debug = True
 
 global johnny
 johnny = AsyncTeleBot (config.johnny5_bot_token)
@@ -188,6 +188,12 @@ Messages = [] # types.Message
 Windows = [] # Window()
 
 #TODO: check for more tags to add
+""" TODO: add more html filters
+            <a href = 'http://www.example.com/'> inline URL </a>
+            <a href = 'tg://user?id=123456789'> inline mention of a user</a>
+            <pre> pre - formatted fixed-width code block</pre>
+"""
+
 def strip_html(text):
     if text is not None and text != '':
         output = text
@@ -203,10 +209,13 @@ def strip_html(text):
         output = re.sub(r'</code>', '', output)
         output = re.sub(r'<strong>', '', output)
         output = re.sub(r'</strong>', '', output)
-        if output.endswith('\n'):
-            output = output.rstrip('\n')
+        if output.startswith('\n'): output = output.lstrip('\n')
+        if output.endswith('\n'): output = output.rstrip('\n')
+
+        if _debug: print(f"output[0]:'{output[0]}'")
         return output
     return text
+
 async def echo(text):
     global console
     if console is not None:
@@ -280,7 +289,7 @@ def keyboard(roll=False, dot=False, hi=False, arigato=False, slash=False, close=
 # Buttons callback
 @johnny.callback_query_handler(func=lambda call: True)
 async def handle_callback(call):
-    global system, console
+    global system, console, _debug
     if _debug: print(f'\n{call}')
 
     if call.data == '.': # call system
@@ -289,26 +298,31 @@ async def handle_callback(call):
         if console is not None:
             console.body('.')
 
+    if call.data == ('/'):
+        system.body('/say Hi!', keyboard=keyboard(web=True))
+        console.body('/')
+
+    if call.data == '🕸️':
+        await web (call.message)
+        system.body('/web 🕸️', keyboard=keyboard(arigato=True))
+
     if call.data == ('\/'):
         await zen(None)
         system.body('\/')
         console.body('\/')
+
     if call.data == 'o/':
         system.body('/\\', keyboard=keyboard(arigato=True))
         console.body('o/')
     if call.data == ('/\\'):
         system.body('.', keyboard=keyboard(dot=True))
         console.body('/\\')
-    if call.data == ('/'):
-        system.body('/say Hi!', keyboard=keyboard())
-        console.body('/')
+
     if call.data == '🎲':
         await roll (call.message)
         system.body('Nice.', keyboard=keyboard(slash=True))
         console.body('/roll')
-    if call.data == '🕸️':
-        await web (call.message)
-        system.body('/web 🕸️')
+
     if call.data == ('💢'):
         console = f'💢#{call.message.id}'
         global Windows
@@ -320,8 +334,9 @@ async def handle_callback(call):
                     system.text = f'#{wnd.message.id} is not under my power.'
 
 # /say # TODO: Revisit kbd hacks and console superhacks
-@johnny.message_handler(commands='say')
+@johnny.message_handler(commands=['say'])
 async def say(message):
+    global _debug
     if _debug:
         print(f'{message}')
 
@@ -343,7 +358,6 @@ async def start(message):
     # Gets a chat and user.
     user = message.from_user
     chat = message.chat
-
     # Updates the list
     Chats.append(chat)
     Users.append(user)
@@ -364,42 +378,13 @@ async def start(message):
     console.title = f'{emojis.window} ~console'
 
     process.title = '~process'
+
     while True:
+        await asyncio.sleep(process_delay)
+
         process.text = f"{time.strftime('%H:%M:%S')}"
-        await update() # TODO: Timer for update per minute
-
-# text
-# Handle all incoming text messages
-@johnny.message_handler(func=lambda message: True)
-async def listen(message):
-    global system, console
-    if _debug: print(f'>>> {message}')
-    await echo(message.text) # console echoes input
-
-    if message.text == '.': # create new console
-        if system is not None:
-            system.body('o/')
-        if console is not None:
-            console.destroy()    
-        console = Window(johnny, message.chat, message.from_user)
-        console.body(f'{message.from_user.username}', f'{emojis.window} ~console')
-
-    if system is not None:
-        if message.text == 'o/':
-            system._zen = False
-            system.body('/\\')
-        elif message.text == '/\\':
-            system.body('.')
-        elif message.text == '/':
-            system.body('/say Hi!') #TODO: To function >> call.data update
-        elif message.text == '\/':
-            await zen(None)
-            system.body('\/')
-        elif message.text == './':
-            await web(message)
-            system.body('/web 🕸️')
-
-    await delete(message) # deletes the message
+        
+        await update() # TODO: Update per minute counter
 
 #TODO: "Object of type Window is not JSON serializable" for Windows
 # /windows
@@ -412,13 +397,52 @@ async def windows(message):
             system.text += f'\n{wnd.to_json()}'
 
         system.body()
-
     await echo(message.text)
     await delete(message)
+
+# text
+# Handle all incoming text messages
+@johnny.message_handler(func=lambda message: True)
+async def listen(message):
+    global system, console, _debug
+    if _debug: print(f'>>> {message}')
+    await echo(message.text) # console echoes input
+
+    if message.text == '.': # create new console
+        if system is not None:
+            system.body('o/')
+        if console is not None:
+            console.destroy()    
+        console = Window(johnny, message.chat, message.from_user)
+        console.body(f'{message.from_user.username}', f'{emojis.window} ~console')
+
+    if message.text == 'o/':
+        if system is not None:
+            system.body('/\\')
+
+        new = Window(johnny, message.chat, message.from_user)
+        # new = deepcopy(system)
+        new.body('hello? who am i?')
+
+    if system is not None:    
+        if message.text == '/\\':
+            system._zen = False
+            system.body('.')
+        elif message.text == '/':
+            system.body('/say Hi!') #TODO: To function >> call.data update
+        elif message.text == '\/':
+            await zen(None)
+            system.body('\/')
+        elif message.text == './':
+            await web(message)
+            system.body('/web 🕸️')
+
+    await delete(message) # deletes the message
+
 # /pictures /pics
 @johnny.message_handler(commands=['pictures', 'pics'])
 async def pictures(message):
-    global system
+    global system, _debug
     if system is not None:
         system.text = f"Pictures?"
 
@@ -572,7 +596,7 @@ async def web(message: types.Message) -> None:
     user = message.from_user
     chat = message.chat
 
-    www = Window(johnny, chat, user, pics.enso, keyboard(close=True), debug = _debug)
+    www = Window(johnny, chat, user, pics.enso, keyboard(close=True))
     www.body('whalecum!', 'www:', keyboard(close=True, zen=True))
 
     async with async_playwright() as playwright:
