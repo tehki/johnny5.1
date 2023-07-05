@@ -20,8 +20,8 @@ nest_asyncio.apply()
 
 # Debugging. Turn on/off.
 global _debug
-process_delay = 5
-_debug = True
+process_delay = 1
+_debug = False
 
 class Window(types.Message):
     title = ''
@@ -118,23 +118,17 @@ class Window(types.Message):
         global _debug
         if self.message is not None:
             if _debug:
-                print(f'{self.message.message_id}:async_update:output({len(self.output)}):\n{self.output}\nmessage.caption:\n{self.message.caption}\nmessage.text:\n{self.message.text}')
-                if self.output is not None:
-                    print(f'len of strip output:{len(strip_html(self.output))}')
-                if self.message.caption is not None:
-                    print(f'len of strip caption:{len(strip_html(self.message.caption))}')
-                if self.message.text is not None:      
-                    print(f'len of strip text:{len(strip_html(self.message.text))}')
+                print(f'{self.message.message_id}:async_update:output({len(self.output)}):\n{self.output}')
 
             if self.photo is not None:
                 if strip_html(self.message.caption) != strip_html(self.output):
                     keyboard = None if self._zen else self.keyboard
-                    if _debug: print(f'UPDATING:\n{self.output}')
+                    # if _debug: print(f'UPDATING:\n{self.output}')
                     self.message = await self.bot.edit_message_caption(self.output, self.chat.id, self.message.id, parse_mode=self.parse_mode, reply_markup=keyboard)
             elif self.output != '':
                 if strip_html(self.message.text) != strip_html(self.output):
                     keyboard = None if self._zen else self.keyboard
-                    if _debug: print(f'UPDATING:\n{self.output}')
+                    # if _debug: print(f'UPDATING:\n{self.output}')
                     self.message = await self.bot.edit_message_text(self.output, self.chat.id, self.message.message_id, parse_mode=self.parse_mode, reply_markup=keyboard)
 
     async def async_upload(self):
@@ -218,7 +212,7 @@ def strip_html(text):
         output = output.strip('\n')
         output = output.strip()
 
-        if _debug: print(f"output[0]:'{output[0]}' output[{len(output)}]:{output}")
+        # if _debug: print(f"output[0]:'{output[0]}' output[{len(output)}]:{output}")
         return output
     return text
 
