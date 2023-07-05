@@ -216,7 +216,7 @@ async def delete(message):
     if message is not None:
         if await johnny.delete_message(message.chat.id, message.message_id):
             message = None
-async def update(delay): # delay in seconds
+async def update(): # delay in seconds
     global Windows, system
     if system._zen:
         if system.photo != None: # no delay for system.head
@@ -224,7 +224,6 @@ async def update(delay): # delay in seconds
         for window in Windows:
             window.zen() # no delay for window.zen() when system is in zen mode
     else:
-        asyncio.sleep(delay) # for telegram windows update via send message
         for window in Windows:
             window.body()
 
@@ -301,7 +300,7 @@ async def handle_callback(call):
         system.body('.', keyboard=keyboard(dot=True))
         console.body('/\\')
     if call.data == ('/'):
-        system.body('\n./\n/johnny\n/windows\n/pictures\n/pic\n/pics\n/screenshots\n/scrns\n/msg', keyboard=keyboard(roll=True))
+        system.body('/say Hi!', keyboard=keyboard())
         console.body('/')
     if call.data == '🎲':
         await roll (call.message)
@@ -364,16 +363,10 @@ async def start(message):
     console.text = f'{system.user.username}'
     console.title = f'{emojis.window} ~console'
 
-    # TODO: debug mode
-    # if debug: system.title = f"#{avatar.message.id}:@{avatar.name()} {avatar.first_name()}:{avatar.chat.id}\n"
-    # if debug: process.title = f"#{console.message.id}\n"
-    # if debug: console.title = f"#{console.message.id}:@{console.user.username} {console.user.full_name}:{console.chat.id}\n"
-    print("While TRUE: >>")
-    processing_speed = 0.1 # TODO: processing slow-down for group chats
     process.title = '~process'
     while True:
         process.text = f"{time.strftime('%H:%M:%S')}"
-        await update(processing_speed)
+        await update() # TODO: Timer for update per minute
 
 # text
 # Handle all incoming text messages
@@ -387,11 +380,9 @@ async def listen(message):
         if system is not None:
             system.body('o/')
         if console is not None:
-            console.destroy()
-            
+            console.destroy()    
         console = Window(johnny, message.chat, message.from_user)
-        console.body(f'', f'~console')
-        
+        console.body(f'{message.from_user.username}', f'{emojis.window} ~console')
 
     if system is not None:
         if message.text == 'o/':
@@ -400,7 +391,7 @@ async def listen(message):
         elif message.text == '/\\':
             system.body('.')
         elif message.text == '/':
-            system.body('/\n.\n/say Hi!') #TODO: To function >> call.data update
+            system.body('/say Hi!') #TODO: To function >> call.data update
         elif message.text == '\/':
             await zen(None)
             system.body('\/')
@@ -509,43 +500,14 @@ async def pic(message):
         
     await echo(message.text)
     await delete(message)
-# /johnny #TODO: Remake
-@johnny.message_handler(commands=['johnny'])
-async def johnny_(message):
-    global system, process
 
-    if system is not None:
-        # system.photo = './pics/johnny_anime.jpg'
-        # system.sticker #TODO: Stickers
-        # stickers https://t.me/addstickers/parnoemoloko
-        system.text = 'Yes?'
-        system.head()
-        system.body()
-        processing_speed = 5
-        new = Window(system.bot, system.chat, system.user)
-        new.title = f"#{new.message.id}:@{new.name()} {new.first_name()}:{new.chat.id}\n"
-        new.keyboard = keyboard(slash=True, dot=True, arigato=True)
-        new.text = '/\\'
-        # system = new # TODO: System reboot? Saving states.
-
-        while True:
-            time.sleep(processing_speed) # TODO: FIX HTML update timeout messages
-            console.text = f"{time.strftime('%H:%M:%S')}"
-            await update()
-
-    await echo(message.text)
-    await delete(message)
 # /system /sys
 @johnny.message_handler(commands=['system', 'sys'])
 async def sys(message):
     global system
     if system is not None:
-
         system.text = f'\nsystem:{system.to_json()}'
         system.text += f'\nphoto:{system.message.photo[0]}'
-
-        # system.text = f'\nmsg:{system.message.json}' # TODO: create new output window
-        # await johnny.send_message(message.chat.id, system.message.json)
         system.body()
     
     await echo(message.text)
@@ -590,16 +552,15 @@ async def scrns(message):
 async def visiting(page, text, screenshot_path, chat_id):
     global www
 
-    print(f'visiting:{page}:{text}:{screenshot_path}:')
+    www.body(f'visiting\n{text}\n{screenshot_path}')
     if page is not None:    
         await page.screenshot(path=screenshot_path)
-        with open(screenshot_path, 'rb') as photo:
-            await www.head(photo)
-            await www.body(screenshot_path, 'www', keyboard(close=True, zen=True))
-            # await johnny.send_photo(chat_id, photo, f'{text} @ {screenshot_path}')
+        await www.head(screenshot_path)
+        await www.body(screenshot_path, 'www', keyboard(close=True, zen=True))
+        # await johnny.send_photo(chat_id, photo, f'{text} @ {screenshot_path}')
 
 async def till_load_and_screenshot(page, message):
-    page.wait_for_load_state("networkidle")
+    # await page.wait_for_load_state("networkidle") #TODO: look for new states
     await visiting(page, page.url, await scrns(message), message.chat.id)
 
 from playwright.async_api import Playwright, async_playwright, expect
@@ -607,19 +568,17 @@ from playwright.async_api import Playwright, async_playwright, expect
 @johnny.message_handler(commands='web')
 async def web(message: types.Message) -> None:
     global system, console, process
-
-#hack = message.text[5:] #TODO: kbd hacks
-
     global www, _debug
     user = message.from_user
     chat = message.chat
+
     www = Window(johnny, chat, user, pics.enso, keyboard(close=True), debug = _debug)
     www.body('whalecum!', 'www:', keyboard(close=True, zen=True))
 
     async with async_playwright() as playwright:
-        #browser = playwright.chromium.launch(headless=False)
+        browser = await playwright.chromium.launch(headless=False)
         #browser = playwright.firefox.launch(headless=False)
-        browser = await playwright.webkit.launch(headless=False)
+        #browser = await playwright.webkit.launch(headless=False)
         context = await browser.new_context()
         page = await context.new_page()
 
