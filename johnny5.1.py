@@ -48,6 +48,7 @@ class Window(types.Message):
 
         global Windows
         Windows.append(self)
+
     def name(self):
         return self.message.from_user.full_name
     def first_name(self):
@@ -393,8 +394,8 @@ async def windows(message):
     await delete(message)
 
 
-async def create_console(chat, user):
-    console = Window(johnny, chat, user)
+async def create_console(bot, chat, user):
+    console = Window(bot, chat, user)
     await console.body(f'{user.username}', f'{emojis.window} ~console')
     return console
 
@@ -421,7 +422,7 @@ async def listen(message):
             await system.body('o/')
         if console is not None:
             await console.destroy()
-        console = await create_console(message.chat, message.from_user)
+        console = await create_console(johnny, message.chat, message.from_user)
 
     if message.text == './':
         if system is not None:
@@ -574,6 +575,7 @@ async def handle_dice(message):
     await johnny.delete_message(message.chat.id, message.message_id) #TODO: It was await delete(). What's the difference?
 
 ### WEB PART ###
+# await page.wait_for_load_state("networkidle") #TODO: look for new states 
 
 async def scrns(message):
     screen_path = f'./screens/'
@@ -581,64 +583,62 @@ async def scrns(message):
         screen_path += f'#{message.chat.id}.{message.message_id}.png'
     return screen_path
 
-async def visiting(page, screen_path):
-    global www, console
+async def visiting(web, www, page, message):
+    screen_path = await scrns(message)
+    
+    if web is not None:
+        await web.body(f'{page.url}', f'{emojis.web} ~web')
 
-    if console is not None:
-        await console.body(f'{page.url}', f'{emojis.web} ~web')
-    if page is not None:
-        await page.screenshot(path=screen_path)
-        await www.head(screen_path)
-        await www.body(f'{current_time()}\n{screen_path}')
+    if www is not None:
+        if page is not None:
+            await page.screenshot(path=screen_path)
+            await www.head(screen_path)
+            await www.body(f'{current_time()} {screen_path}')
 
-async def till_load_and_screenshot(page, message):
-    # await page.wait_for_load_state("networkidle") #TODO: look for new states
-    await visiting(page, await scrns(message))
-
-async def web_tradingview_login(page, message, login, password):
+async def web_tradingview_login(self, page, login, password):
     await page.goto("https://www.tradingview.com/")
-    await till_load_and_screenshot(page, message)
+    await visiting(page, self.message)
     await page.get_by_role("button", name="Open user menu").click()
-    await till_load_and_screenshot(page, message)
+    await visiting(page, self.message)
     await page.get_by_role("menuitem", name="Sign in").click()
     await page.get_by_role("button", name="Email").click()
     await page.get_by_label("Email or Username").click()
     await page.get_by_label("Email or Username").fill(login)
     await page.get_by_label("Password").click()
     await page.get_by_label("Password").fill(password)
-    await till_load_and_screenshot(page, message)
+    await visiting(page, self.message)
     await page.get_by_role("button", name="Sign in").click()
 
 from playwright.async_api import Playwright, async_playwright, expect
+
 # /web
 @johnny.message_handler(commands='web')
 async def web(message: types.Message) -> None:
     global _debug
-    user = message.from_user
     chat = message.chat
+    user = message.from_user
 
-    web = await create_console(chat, user)
-    await console.body(f'Entering {emojis.web} ~web')
-    
-
-    www = Window(johnny, chat, user, pics.enso, keyboard(close=True))
-    await www.body('', f'{emojis.spider} ~spider')
+    #Creating web console
+    web = await create_console(johnny, chat, user)
+    await web.body(f'Entering {emojis.web} ~web')
 
     async with async_playwright() as playwright:
-        #browser = await playwright.firefox.launch(headless=False)
         #browser = await playwright.webkit.launch(headless=False)
-        
-        browser = await playwright.chromium.launch(headless=False)
+        #browser = await playwright.chromium.launch(headless=False)
+
+        browser = await playwright.firefox.launch(headless=False)
         context = await browser.new_context()
+
         page = await context.new_page()
-        
-        await web_tradingview_login(page, message, config.johnny5_proton_login, config.johnny5_proton_password)
+        await page.set_viewport_size({'width': 800, 'height': 600})
+
+        www = Window(johnny, chat, user, pics.enso, keyboard(close=True))
+        await www.body('', f'{emojis.spider} ~spider')
 
         while True:
-            await till_load_and_screenshot(page, message)
+            await visiting(web, www, page, message)
             await asyncio.sleep(process_delay)
 
-            print(f'{context.pages}')
         # ---------------------
         #await context.close()
         #await browser.close()
