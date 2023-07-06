@@ -394,9 +394,6 @@ async def windows(message):
 
 
 async def create_console(chat, user):
-    global console
-    if console is not None:
-        console.destroy()
     console = Window(johnny, chat, user)
     await console.body(f'{user.username}', f'{emojis.window} ~console')
     return console
@@ -422,7 +419,9 @@ async def listen(message):
         if system is not None:
             print(system)
             await system.body('o/')
-        await create_console(message.chat, message.from_user)
+        if console is not None:
+            await console.destroy()
+        console = await create_console(message.chat, message.from_user)
 
     if message.text == './':
         if system is not None:
@@ -614,14 +613,14 @@ from playwright.async_api import Playwright, async_playwright, expect
 # /web
 @johnny.message_handler(commands='web')
 async def web(message: types.Message) -> None:
-    global system, console, process
-    global www, _debug
+    global _debug
     user = message.from_user
     chat = message.chat
 
-    console = await create_console(chat, user)
+    web = await create_console(chat, user)
     await console.body(f'Entering {emojis.web} ~web')
     
+
     www = Window(johnny, chat, user, pics.enso, keyboard(close=True))
     await www.body('', f'{emojis.spider} ~spider')
 
