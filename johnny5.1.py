@@ -44,13 +44,16 @@ class Window(types.Message):
         firefox = playwright.firefox
         webkit = playwright.webkit
 
-        iphone = playwright.devices["iPhone 6"] # TODO: to emulate different devices
+        # iphone = playwright.devices["iPhone 6"] # TODO: to emulate different devices
         self.browser = await firefox.launch(headless=False) # TODO: implement browsers
-        self.context = await self.browser.new_context() # **iphone TODO: many different contexts with vpn
+        self.context = await self.browser.new_context() # **iphone  TODO: many different contexts with vpn
+        await self.body(f'', f'{emojis.web} ~web')
 
     async def spider(self, url = ''): # returns window of a spider
         if self.context is not None:
 
+            await self.body(self.text+f'\n{current_time()} {emojis.spider} sending a spider to {url}') # logging an action to web.body
+            #TODO: may be a bad idea due to message size restriction. check text size of the message
             page = await self.context.new_page()
             www = Window(johnny, self.chat, self.user, pics.enso, keyboard(close=True))
             await www.body('', f'{emojis.spider} ~spider')
@@ -69,7 +72,7 @@ class Window(types.Message):
             if www is not None:
                 await page.screenshot(path=screen_path)
                 await www.head(screen_path)
-                await www.body(f'{current_time()} {screen_path}', f'{emojis.spider} ~spider @ {page.url}')
+                await www.body(f'{current_time()} {screen_path}', f'{emojis.spider} ~spider {page.url}')
 
     def __init__(self, bot, chat, user, photo = None, keyboard = None, parse_mode = None):
         self.id: int = None
@@ -641,7 +644,6 @@ async def web(message: types.Message) -> None:
         www2 = await web.spider('https://chat.openai.com/')
 
         while True:
-            await web.body('', f'{emojis.web} ~web')
             await web.visiting(www, message)
             await web.visiting(www2, message)
             await asyncio.sleep(process_delay)
