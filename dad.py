@@ -45,17 +45,8 @@ def visiting(page, text, screenshot_path, chat_id):
         with open(screenshot_path, 'rb') as photo:
             dad.send_photo(chat_id, photo, f'{text} @ {screenshot_path}')
 
-def extract_urls(text):
-    pattern = r'(https?://\S+)'
-    urls = re.findall(pattern, text)
-    return urls
-
-
-def scrns(message):
-    screenshot_path = f'./screenshots/scrn_'
-    if message is not None:
-        screenshot_path += f'#{message.chat.id}.{message.message_id}.png'
-    return screenshot_path
+from web import extract_urls
+from web import scrns
 
 def wait_till_load_and_screenshot(page, message):
     page.wait_for_load_state("networkidle")
