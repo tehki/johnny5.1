@@ -66,7 +66,7 @@ class Window(types.Message):
     async def visiting(self, www, message): #TODO: Do we need message here or use self.message?
         screen_path = await scrns(message)
         print(f"VISITING www:{www}\nMESSAGE:\n{message}\nSELF.message:\n{self.message}")
-        
+
         page = self.pages[www.id]
         if page is not None:
             if www is not None:
