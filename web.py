@@ -1,18 +1,17 @@
 import re
-
 def extract_urls(text):
     pattern = r'(https?://\S+)'
     urls = re.findall(pattern, text)
     return urls
 
-async def scrns(message):
+from telebot import types
+async def scrns(message:types.Message): # returns path to screen.png file of the message
     screen_path = f'./screens/'
     if message is not None:
         screen_path += f'#{message.chat.id}.{message.message_id}.png'
     return screen_path
 
 from playwright.async_api import Page
-
 async def tradingview_login(page: Page, login, password):
     await page.goto("https://www.tradingview.com/")
     await page.get_by_role("button", name="Open user menu").click()

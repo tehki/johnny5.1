@@ -28,12 +28,7 @@ from playwright.async_api._context_manager import PlaywrightContextManager
 from playwright._impl._browser_context import BrowserContext
 from playwright._impl._browser_type import BrowserType
 ###
-async def scrns(message:types.Message): # returns path to screen.png file of the message
-    screen_path = f'./screens/'
-    if message is not None:
-        screen_path += f'#{message.chat.id}.{message.message_id}.png'
-    return screen_path
-
+from web import scrns
 class Window(types.Message):
     title = ''
     text = ''
