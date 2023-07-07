@@ -1,3 +1,7 @@
+spider = '🕷️'
+window = '🗔'
+web = '🕸️'
+
 money_bag = '💰'
 dice = '🎲'
 darts = '🎯'
@@ -6,4 +10,3 @@ gun = '🔫'
 phone = '📱'
 run = '🏃'
 window = '🗔'
-web = '🕸️'

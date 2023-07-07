@@ -1,5 +1,6 @@
 # Ignore screenshots and media folders
 screenshots/
+screens/
 vids/
 # Ignore build artifacts
 env/

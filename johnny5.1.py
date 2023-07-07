@@ -20,7 +20,7 @@ nest_asyncio.apply()
 
 # Debugging. Turn on/off.
 global _debug
-process_delay = 1
+process_delay = 10
 _debug = False
 
 class Window(types.Message):
@@ -48,6 +48,7 @@ class Window(types.Message):
 
         global Windows
         Windows.append(self)
+
     def name(self):
         return self.message.from_user.full_name
     def first_name(self):
@@ -349,6 +350,9 @@ async def say(message):
     await echo(message.text)
     await delete(message)
 
+def current_time():
+    return time.strftime('%H:%M:%S')
+
 # /start
 @johnny.message_handler(commands=['start'])
 async def start(message):
@@ -366,24 +370,13 @@ async def start(message):
     # Creates system, console and process
     global system, console, process
 
-    system = Window(johnny, chat, user, pics.johnny)
+    system = await create_system(chat, user)
+    console = await create_console(chat, user)
+
     process = Window(johnny, chat, user)
-    console = Window(johnny, chat, user)
-
-    system.text = f"{system.first_name()}"
-    system.keyboard = keyboard(hi=True)
-    system.title = f'~system'
-
-    console.text = f'{system.user.username}'
-    console.title = f'{emojis.window}~console'
-
     process.title = '~process'
-
-    await system.head()
-    await system.body()
-    await console.body()
     while True:
-        await process.body(f"{time.strftime('%H:%M:%S')}") # TODO: Update per minute counter
+        await process.body(f"{current_time()}") # TODO: Update per minute counter
         await asyncio.sleep(process_delay)
         
 #TODO: "Object of type Window is not JSON serializable" for Windows
@@ -400,6 +393,21 @@ async def windows(message):
     await echo(message.text)
     await delete(message)
 
+
+async def create_console(bot, chat, user):
+    console = Window(bot, chat, user)
+    await console.body(f'{user.username}', f'{emojis.window} ~console')
+    return console
+
+async def create_system(chat, user):
+    global system
+    if system is not None:
+        system.destroy()
+    system = Window(johnny, chat, user, pics.johnny)
+    await system.head()
+    await system.body(f'{system.first_name()}', f'{emojis.window} ~system', keyboard(hi=True))
+    return system
+
 # text
 # Handle all incoming text messages
 @johnny.message_handler(func=lambda message: True)
@@ -410,18 +418,21 @@ async def listen(message):
 
     if message.text == '.': # create new console
         if system is not None:
+            print(system)
             await system.body('o/')
         if console is not None:
-            console.destroy()    
-        console = Window(johnny, message.chat, message.from_user)
-        await console.body(f'{message.from_user.username}', f'{emojis.window} ~console')
+            await console.destroy()
+        console = await create_console(johnny, message.chat, message.from_user)
+
+    if message.text == './':
+        if system is not None:
+            await system.body('/web 🕸️')
+        await web(message)
 
     if message.text == 'o/':
         if system is not None:
             await system.body('/\\')
-
         new = Window(johnny, message.chat, message.from_user)
-        # new = deepcopy(system)
         await new.body('hello? who am i?')
 
     if system is not None:    
@@ -433,9 +444,7 @@ async def listen(message):
         elif message.text == '\/':
             await zen(None)
             await system.body('\/')
-        elif message.text == './':
-            await web(message)
-            await system.body('/web 🕸️')
+    
 
     await delete(message) # deletes the message
 
@@ -465,25 +474,25 @@ async def pictures(message):
 
         await echo(message.text)
         await delete(message)
-# /screenshots /scrns
-@johnny.message_handler(commands=['screenshots', 'scrns'])
-async def screenshots(message):
+# /screens /scrns
+@johnny.message_handler(commands=['screens', 'scrns'])
+async def screens(message):
     global system
     if system is not None:
-        system.text = f"Screenshots?"
+        system.text = f"Screens?"
 
-        screenshots = []
-        pic_path = './screenshots/'
+        screens = []
+        pic_path = './screens/'
         # Iterate over all files in the folder
         for filename in os.listdir(pic_path):
             # Check if the file has a .jpg or .png extension
             if filename.endswith('.jpg') or filename.endswith('.png'):
                 # Create the full file path
                 file_path = os.path.join(pic_path, filename)
-                screenshots.append(file_path)
+                screens.append(file_path)
 
-        for screenshot in screenshots:
-            system.text += f"\n{screenshot}"
+        for screen in screens:
+            system.text += f"\n{screen}"
         await system.body()
 
         await echo(message.text)
@@ -566,72 +575,73 @@ async def handle_dice(message):
     await johnny.delete_message(message.chat.id, message.message_id) #TODO: It was await delete(). What's the difference?
 
 ### WEB PART ###
+# await page.wait_for_load_state("networkidle") #TODO: look for new states 
 
 async def scrns(message):
-    screenshot_path = f'./screenshots/scrn_'
+    screen_path = f'./screens/'
     if message is not None:
-        screenshot_path += f'#{message.chat.id}.{message.message_id}.png'
-    return screenshot_path
+        screen_path += f'#{message.chat.id}.{message.message_id}.png'
+    return screen_path
 
-async def visiting(page, text, screenshot_path, chat_id):
-    global www
+async def visiting(web, www, page, message):
+    screen_path = await scrns(message)
+    
+    if web is not None:
+        await web.body(f'{page.url}', f'{emojis.web} ~web')
 
-    await www.body(f'visiting\n{text}\n{screenshot_path}')
-    if page is not None:    
-        await page.screenshot(path=screenshot_path)
-        await www.head(screenshot_path)
-        await www.body(screenshot_path, 'www', keyboard(close=True, zen=True))
-        # await johnny.send_photo(chat_id, photo, f'{text} @ {screenshot_path}')
+    if www is not None:
+        if page is not None:
+            await page.screenshot(path=screen_path)
+            await www.head(screen_path)
+            await www.body(f'{current_time()} {screen_path}')
 
-async def till_load_and_screenshot(page, message):
-    # await page.wait_for_load_state("networkidle") #TODO: look for new states
-    await visiting(page, page.url, await scrns(message), message.chat.id)
+async def web_tradingview_login(self, page, login, password):
+    await page.goto("https://www.tradingview.com/")
+    await visiting(page, self.message)
+    await page.get_by_role("button", name="Open user menu").click()
+    await visiting(page, self.message)
+    await page.get_by_role("menuitem", name="Sign in").click()
+    await page.get_by_role("button", name="Email").click()
+    await page.get_by_label("Email or Username").click()
+    await page.get_by_label("Email or Username").fill(login)
+    await page.get_by_label("Password").click()
+    await page.get_by_label("Password").fill(password)
+    await visiting(page, self.message)
+    await page.get_by_role("button", name="Sign in").click()
 
 from playwright.async_api import Playwright, async_playwright, expect
+
 # /web
 @johnny.message_handler(commands='web')
 async def web(message: types.Message) -> None:
-    global system, console, process
-    global www, _debug
-    user = message.from_user
+    global _debug
     chat = message.chat
+    user = message.from_user
 
-    www = Window(johnny, chat, user, pics.enso, keyboard(close=True))
-    await www.body('whalecum!', 'www:', keyboard(close=True, zen=True))
+    #Creating web console
+    web = await create_console(johnny, chat, user)
+    await web.body(f'Entering {emojis.web} ~web')
 
     async with async_playwright() as playwright:
-        browser = await playwright.chromium.launch(headless=False)
-        #browser = playwright.firefox.launch(headless=False)
         #browser = await playwright.webkit.launch(headless=False)
+        #browser = await playwright.chromium.launch(headless=False)
+
+        browser = await playwright.firefox.launch(headless=False)
         context = await browser.new_context()
+
         page = await context.new_page()
+        await page.set_viewport_size({'width': 800, 'height': 600})
 
-        await page.goto("https://www.tradingview.com/")
-        await till_load_and_screenshot(page, message)
+        www = Window(johnny, chat, user, pics.enso, keyboard(close=True))
+        await www.body('', f'{emojis.spider} ~spider')
 
-        await page.get_by_role("button", name="Open user menu").click()
-        await till_load_and_screenshot(page, message)
+        while True:
+            await visiting(web, www, page, message)
+            await asyncio.sleep(process_delay)
 
-        await page.get_by_role("menuitem", name="Sign in").click()
-        await till_load_and_screenshot(page, message)
-        await page.get_by_role("button", name="Email").click()
-        await till_load_and_screenshot(page, message)
-        await page.get_by_label("Email or Username").click()
-        await till_load_and_screenshot(page, message)
-        await page.get_by_label("Email or Username").fill(config.johnny5_proton_login)
-        await till_load_and_screenshot(page, message)
-        await page.get_by_label("Password").click()
-        await till_load_and_screenshot(page, message)
-        await page.get_by_label("Password").fill(config.johnny5_proton_password)
-        await till_load_and_screenshot(page, message)
-        await page.locator("label").filter(has_text="Remember me").locator("span").nth(1).click()
-        await till_load_and_screenshot(page, message)
-        await page.get_by_role("button", name="Sign in").click()
-        await asyncio.sleep(5)
-        await till_load_and_screenshot(page, message)
         # ---------------------
-        await context.close()
-        await browser.close()
+        #await context.close()
+        #await browser.close()
 
 # sticker
 # Handle all incoming stickers
