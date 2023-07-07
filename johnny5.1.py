@@ -68,13 +68,13 @@ class Window(types.Message):
         global _debug
         screen_path = await scrns(message)
         if _debug: print(f"VISITING www:{www}\nMESSAGE:\n{message}\nSELF.message:\n{self.message}")
-
+        # {page.url}
         page = self.pages[www.id]
         if page is not None:
             if www is not None:
                 await page.screenshot(path=screen_path)
                 await www.head(screen_path)
-                await www.body(f'{current_time()} {screen_path}', f'{emojis.spider} ~spider {page.url}')
+                await www.body(f'{current_time()} {screen_path}', f'{emojis.spider} ~spider')
     
     def __init__(self, bot, chat, user, photo = None, keyboard = None, parse_mode = None):
         self.id: int = None
@@ -630,6 +630,8 @@ from playwright.async_api import Playwright, async_playwright, expect
 
 from web import extract_buttons_and_text
 from web import send_html
+from web import forefront_login
+from config import gmail_login
 # /web
 @johnny.message_handler(commands='web')
 async def web(message: types.Message) -> None:
@@ -644,10 +646,11 @@ async def web(message: types.Message) -> None:
     async with async_playwright() as playwright:
         await web.run(playwright)
 
-        www = await web.spider('https://chat.forefront.ai/')
-        
+        www = await web.spider('https://chat.forefront.ai/')      
         page = web.pages[www.id]
-
+        print(f'page.url:{page.url}')
+        await forefront_login(page, gmail_login)    
+        
         await page.wait_for_load_state("networkidle") #TODO: look for new states
         await extract_buttons_and_text(page)
         await send_html(page, message, bot=johnny)

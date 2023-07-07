@@ -28,7 +28,7 @@ async def send_html(page: Page, message: types.Message, bot = None): # returns a
             file.write(content.encode())
             file.seek(0)
             if bot is not None:
-                 bot.send_document(message.chat.id, file, caption=f'{page.url}', visible_file_name='sources.html') # TODO: make a window with modifying document?
+                 await bot.send_document(message.chat.id, file, caption=f'{page.url}', visible_file_name='sources.html') # TODO: make a window with modifying document?
             return file # TODO: can a self contain multiple documents and send them in one window?
 
 
@@ -42,6 +42,60 @@ async def tradingview_login(page: Page, login, password):
     await page.get_by_label("Password").click()
     await page.get_by_label("Password").fill(password)
     await page.get_by_role("button", name="Sign in").click()
+
+async def forefront_login(page: Page, login):
+    print(f'>>> forefront login')
+    buttons = await page.query_selector_all('button')
+    button_texts = [await button.text_content() for button in buttons]
+    print(f'button_texts:{button_texts}')
+    for button in buttons:
+        print(f'>>> button {button}')
+        if await button.text_content() == 'Login':
+            # search for the buttons
+            print(f'>>>> clicking Login {button}')
+            await button.click() # page.get_by_role("button", name="Login").click()
+
+        if await button.text_content() == 'Sign in with Google Continue with Google':
+            print(f'>>>> clicking Sign in with Google {button}')
+            await button.click() # page.get_by_role("button", name="Sign in with Google Continue with Google").click()
+
+    textboxes = await page.query_selector_all('textbox')
+    textboxes_texts = [await txtbox.text_content() for txtbox in textboxes]
+    print(f'txtboxes:{textboxes_texts}')
+
+    buttons = await page.query_selector_all('button')
+    button_texts = [await button.text_content() for button in buttons]
+    for button in buttons:
+        if button.text_content() == 'Continue on Free':
+             await button.click() # page.get_by_role("button", name="Continue on Free").click()
+
+    for textbox in textboxes:
+         print(f'txtbox:{textbox}')
+
+         if await textbox.text_content() == 'Email or phone':
+            await textbox.click()
+            await page.get_by_role("textbox", name="Email or phone").click()
+            await page.get_by_role("textbox", name="Email or phone").fill(login)
+            await page.get_by_role("textbox", name="Email or phone").press("Enter")
+    
+    await page.get_by_role("textbox").locator("div").click()
+
+    print('>>> yo yo yo how r u')
+    await page.get_by_role("textbox").fill("Yo yo yo, how are u")
+    await page.get_by_role("textbox").press("Enter")
+    
+    output = page.locator("div:nth-child(2) > div:nth-child(4)")
+    print(f'{output}')
+    
+    """
+    await page.get_by_role("textbox").filter(has_text="Message GPT-3.5").locator("div").click()
+    await page.get_by_role("textbox").filter(has_text="Message GPT-3.5").fill("Good good! ")
+    await page.get_by_role("textbox").filter(has_text="Message GPT-3.5").press("Enter")
+    output2 = page.locator("div:nth-child(8)")
+    print(f'{output2}')
+    """
+    print(f'{await page.content()}')
+    print(f'--- the end of forefront login ---')
 
 async def extract_buttons_and_text(page: Page):
         # Find all buttons
@@ -59,5 +113,8 @@ async def extract_buttons_and_text(page: Page):
         print(f'>> divs_texts:\n{div_texts}')
 
         # Click the first button if there is at least one
+        """
         if buttons:
-            buttons[0].click()
+            print(f'>> clicking {buttons[0]}')
+            await buttons[0].click()
+        """
