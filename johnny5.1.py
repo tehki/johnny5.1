@@ -45,13 +45,13 @@ class Window(types.Message):
         webkit = playwright.webkit
 
         iphone = playwright.devices["iPhone 6"] # TODO: to emulate different devices
-        self.browser = await webkit.launch(headless=False) # TODO: implement browsers
-        self.context = self.browser.new_context() # **iphone TODO: many different contexts with vpn
+        self.browser = await firefox.launch(headless=False) # TODO: implement browsers
+        self.context = await self.browser.new_context() # **iphone TODO: many different contexts with vpn
 
     async def spider(self, url = ''): # returns window of a spider
         if self.context is not None:
 
-            page = self.context.new_page()
+            page = await self.context.new_page()
             www = Window(johnny, self.chat, self.user, pics.enso, keyboard(close=True))
             await www.body('', f'{emojis.spider} ~spider')
             self.pages[www.id] = page
@@ -62,17 +62,14 @@ class Window(types.Message):
 
     async def visiting(self, www, message): #TODO: Do we need message here or use self.message?
         screen_path = await scrns(message)
-        print(f"VISITING www:{www}\nmessage:{message}\nself.message{self.message}")
+        print(f"VISITING www:{www}\nMESSAGE:\n{message}\nSELF.message:\n{self.message}")
         
-        if self.browser is not None:
-            await self.body(f'{page.url}', f'{emojis.web} ~web')
-
-        if www is not None:
-            page = self.pages[www.id]
-            if page is not None:
+        page = self.pages[www.id]
+        if page is not None:
+            if www is not None:
                 await page.screenshot(path=screen_path)
                 await www.head(screen_path)
-                await www.body(f'{current_time()} {screen_path}')
+                await www.body(f'{current_time()} {screen_path}', f'{emojis.spider} ~spider @ {page.url}')
 
     def __init__(self, bot, chat, user, photo = None, keyboard = None, parse_mode = None):
         self.id: int = None
@@ -625,23 +622,7 @@ async def handle_dice(message):
 
 ### WEB PART ###
 # await page.wait_for_load_state("networkidle") #TODO: look for new states 
-
-async def web_tradingview_login(self, page, login, password):
-    await page.goto("https://www.tradingview.com/")
-    await visiting(page, self.message)
-    await page.get_by_role("button", name="Open user menu").click()
-    await visiting(page, self.message)
-    await page.get_by_role("menuitem", name="Sign in").click()
-    await page.get_by_role("button", name="Email").click()
-    await page.get_by_label("Email or Username").click()
-    await page.get_by_label("Email or Username").fill(login)
-    await page.get_by_label("Password").click()
-    await page.get_by_label("Password").fill(password)
-    await visiting(page, self.message)
-    await page.get_by_role("button", name="Sign in").click()
-
 from playwright.async_api import Playwright, async_playwright, expect
-
 # /web
 @johnny.message_handler(commands='web')
 async def web(message: types.Message) -> None:
@@ -655,10 +636,14 @@ async def web(message: types.Message) -> None:
 
     async with async_playwright() as playwright:
         await web.run(playwright)
+
         www = await web.spider('https://tradingview.com/')
+        www2 = await web.spider('https://chat.openai.com/')
 
         while True:
+            await web.body('', f'{emojis.web} ~web')
             await web.visiting(www, message)
+            await web.visiting(www2, message)
             await asyncio.sleep(process_delay)
 
         # ---------------------
