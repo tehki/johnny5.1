@@ -4,6 +4,7 @@ import config
 import json
 import re
 import os
+import io
 # import emojis
 # import functions
 
@@ -64,8 +65,9 @@ class Window(types.Message):
             return www
 
     async def visiting(self, www, message): #TODO: Do we need message here or use self.message?
+        global _debug
         screen_path = await scrns(message)
-        print(f"VISITING www:{www}\nMESSAGE:\n{message}\nSELF.message:\n{self.message}")
+        if _debug: print(f"VISITING www:{www}\nMESSAGE:\n{message}\nSELF.message:\n{self.message}")
 
         page = self.pages[www.id]
         if page is not None:
@@ -73,7 +75,7 @@ class Window(types.Message):
                 await page.screenshot(path=screen_path)
                 await www.head(screen_path)
                 await www.body(f'{current_time()} {screen_path}', f'{emojis.spider} ~spider {page.url}')
-
+    
     def __init__(self, bot, chat, user, photo = None, keyboard = None, parse_mode = None):
         self.id: int = None
 
@@ -624,8 +626,10 @@ async def handle_dice(message):
     await johnny.delete_message(message.chat.id, message.message_id) #TODO: It was await delete(). What's the difference?
 
 ### WEB PART ###
-# await page.wait_for_load_state("networkidle") #TODO: look for new states 
 from playwright.async_api import Playwright, async_playwright, expect
+
+from web import extract_buttons_and_text
+from web import send_html
 # /web
 @johnny.message_handler(commands='web')
 async def web(message: types.Message) -> None:
@@ -640,12 +644,16 @@ async def web(message: types.Message) -> None:
     async with async_playwright() as playwright:
         await web.run(playwright)
 
-        www = await web.spider('https://tradingview.com/')
-        www2 = await web.spider('https://chat.openai.com/')
+        www = await web.spider('https://chat.forefront.ai/')
+        
+        page = web.pages[www.id]
+
+        await page.wait_for_load_state("networkidle") #TODO: look for new states
+        await extract_buttons_and_text(page)
+        await send_html(page, message, bot=johnny)
 
         while True:
             await web.visiting(www, message)
-            await web.visiting(www2, message)
             await asyncio.sleep(process_delay)
 
         # ---------------------

