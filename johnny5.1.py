@@ -23,11 +23,61 @@ global _debug
 process_delay = 10
 _debug = False
 
+# Returns a dictionary of devices to be used with `browser.new_context()` or `browser.new_page()`.
+from playwright.async_api._context_manager import PlaywrightContextManager
+from playwright._impl._browser_context import BrowserContext
+from playwright._impl._browser_type import BrowserType
+###
+async def scrns(message:types.Message): # returns path to screen.png file of the message
+    screen_path = f'./screens/'
+    if message is not None:
+        screen_path += f'#{message.chat.id}.{message.message_id}.png'
+    return screen_path
+
 class Window(types.Message):
     title = ''
     text = ''
     output = ''
     _zen = False
+
+    browser: BrowserType = None
+    context: BrowserContext = None
+    pages = {}
+
+    async def run(self, playwright: PlaywrightContextManager): # runs a new browser context
+        chrome = playwright.chromium
+        firefox = playwright.firefox
+        webkit = playwright.webkit
+
+        iphone = playwright.devices["iPhone 6"] # TODO: to emulate different devices
+        self.browser = await webkit.launch(headless=False) # TODO: implement browsers
+        self.context = self.browser.new_context() # **iphone TODO: many different contexts with vpn
+
+    async def spider(self, url = ''): # returns window of a spider
+        if self.context is not None:
+
+            page = self.context.new_page()
+            www = Window(johnny, self.chat, self.user, pics.enso, keyboard(close=True))
+            await www.body('', f'{emojis.spider} ~spider')
+            self.pages[www.id] = page
+            
+            await page.set_viewport_size({'width': 800, 'height': 600})
+            await page.goto(url)
+            return www
+
+    async def visiting(self, www, message): #TODO: Do we need message here or use self.message?
+        screen_path = await scrns(message)
+        print(f"VISITING www:{www}\nmessage:{message}\nself.message{self.message}")
+        
+        if self.browser is not None:
+            await self.body(f'{page.url}', f'{emojis.web} ~web')
+
+        if www is not None:
+            page = self.pages[www.id]
+            if page is not None:
+                await page.screenshot(path=screen_path)
+                await www.head(screen_path)
+                await www.body(f'{current_time()} {screen_path}')
 
     def __init__(self, bot, chat, user, photo = None, keyboard = None, parse_mode = None):
         self.id: int = None
@@ -163,6 +213,10 @@ class Window(types.Message):
         if self.message is not None:
             await self.bot.delete_message(self.chat.id, self.message.message_id)
             self.message = None
+        if self.browser is not None: # TODO: Many browsers and contextes
+            await self.browser.close()
+            self.context = None
+            self.browser = None
 
 # 🤫
 # alice.
@@ -370,8 +424,8 @@ async def start(message):
     # Creates system, console and process
     global system, console, process
 
-    system = await create_system(chat, user)
-    console = await create_console(chat, user)
+    system = await create_system(chat, user) # TODO: Add bot
+    console = await create_console(johnny, chat, user) # TODO: or remove bot?
 
     process = Window(johnny, chat, user)
     process.title = '~process'
@@ -577,24 +631,6 @@ async def handle_dice(message):
 ### WEB PART ###
 # await page.wait_for_load_state("networkidle") #TODO: look for new states 
 
-async def scrns(message):
-    screen_path = f'./screens/'
-    if message is not None:
-        screen_path += f'#{message.chat.id}.{message.message_id}.png'
-    return screen_path
-
-async def visiting(web, www, page, message):
-    screen_path = await scrns(message)
-    
-    if web is not None:
-        await web.body(f'{page.url}', f'{emojis.web} ~web')
-
-    if www is not None:
-        if page is not None:
-            await page.screenshot(path=screen_path)
-            await www.head(screen_path)
-            await www.body(f'{current_time()} {screen_path}')
-
 async def web_tradingview_login(self, page, login, password):
     await page.goto("https://www.tradingview.com/")
     await visiting(page, self.message)
@@ -623,20 +659,11 @@ async def web(message: types.Message) -> None:
     await web.body(f'Entering {emojis.web} ~web')
 
     async with async_playwright() as playwright:
-        #browser = await playwright.webkit.launch(headless=False)
-        #browser = await playwright.chromium.launch(headless=False)
-
-        browser = await playwright.firefox.launch(headless=False)
-        context = await browser.new_context()
-
-        page = await context.new_page()
-        await page.set_viewport_size({'width': 800, 'height': 600})
-
-        www = Window(johnny, chat, user, pics.enso, keyboard(close=True))
-        await www.body('', f'{emojis.spider} ~spider')
+        await web.run(playwright)
+        www = await web.spider('https://tradingview.com/')
 
         while True:
-            await visiting(web, www, page, message)
+            await web.visiting(www, message)
             await asyncio.sleep(process_delay)
 
         # ---------------------
