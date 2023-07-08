@@ -1,4 +1,30 @@
+#TODO: check for more tags to add
+""" TODO: add more html filters
+            <a href = 'http://www.example.com/'> inline URL </a>
+            <a href = 'tg://user?id=123456789'> inline mention of a user</a>
+"""
 import re
+def strip_html(text):
+    if text is not None and text != '':
+        output = text
+        output = re.sub(r'<b>', '', output)
+        output = re.sub(r'</b>', '', output)
+        output = re.sub(r'<i>', '', output)
+        output = re.sub(r'</i>', '', output)
+        output = re.sub(r'<em>', '', output)
+        output = re.sub(r'</em>', '', output)
+        output = re.sub(r'<pre>', '', output)
+        output = re.sub(r'</pre>', '', output)
+        output = re.sub(r'<code>', '', output)
+        output = re.sub(r'</code>', '', output)
+        output = re.sub(r'<strong>', '', output)
+        output = re.sub(r'</strong>', '', output)
+        output = re.sub(r'\n', '', output)
+        output = output.strip('\n')
+        output = output.strip()
+        return output
+    return text
+
 def extract_urls(text):
     pattern = r'(https?://\S+)'
     urls = re.findall(pattern, text)
@@ -11,7 +37,18 @@ async def scrns(message:types.Message): # returns path to screen.png file of the
         screen_path += f'#{message.chat.id}.{message.message_id}.png'
     return screen_path
 
+import emojis
+from window import Window
+from window import current_time
 from playwright.async_api import Page
+
+async def web_update(www: Window, page: Page):
+            if www is not None:
+                if page is not None:
+                    screen_path = await scrns(www.message)    
+                    await page.screenshot(path=screen_path)
+                    await www.head(screen_path)
+                    await www.body(f'{current_time()} {screen_path}', f'{emojis.spider} ~spider')
 
 async def cookies(page: Page):
             # Get the cookies
@@ -61,7 +98,16 @@ async def click_on(page: Page, text, button='button'):
               await button.click()
               print(f'clicked {text}\n{button}')
 
-async def forefront_login(page: Page, login, timeout = 200000):
+async def forefront_input(page: Page, text):
+    print('>> forefront input')
+    await page.get_by_role("textbox").click()
+    await print_all('*')
+    #await page.get_by_role("textbox").fill(text)
+    #await page.get_by_role("textbox").press("Enter")
+    #
+#TODO: forefront output await page.get_by_text("Hello!").click()
+
+async def forefront_login(page: Page, login, password, timeout = 200000):
     print(f">> forefront login {login}")
     print(f'page:{page}')
     #await page.set_default_timeout(timeout)  # Set timeout to 200 seconds
@@ -73,11 +119,11 @@ async def forefront_login(page: Page, login, timeout = 200000):
     await page.click(button)
     print(f'clicked {button}')
 
-    await page.wait_for_load_state('networkidle', timeout=timeout)
+    await page.wait_for_load_state('networkidle', timeout=timeout) # ["commit", "domcontentloaded", "load", "networkidle"]
     print(f'networkidle')
 
     await click_on(page, 'Continue with Google', 'button')
-    await page.wait_for_load_state('networkidle', timeout=timeout)
+    await page.wait_for_load_state('networkidle', timeout=timeout) # ["commit", "domcontentloaded", "load", "networkidle"]
     print(f'networkidle')
 
     await print_all(page, 'input')
@@ -86,11 +132,33 @@ async def forefront_login(page: Page, login, timeout = 200000):
     await page.fill(google_email, login)
     print(f'filled in {google_email} with {login}')
 
-    #await print_all(page, '*')
-    await page.wait_for_load_state('networkidle', timeout=timeout)
+    await click_on(page, 'Next', 'button')
+    await page.wait_for_load_state('commit', timeout=timeout) # ["commit", "domcontentloaded", "load", "networkidle"]
+    print('_commit')
+
+    # Find the element with the <samp> tag
+    samp = await page.query_selector('text leaf')
+    print(f'samp:{samp}')
+    if samp is not None:
+        print(f'samp:{await samp.text_content()}')
+
+    await print_all(page, 'input')
+    google_password = 'input[type="password"]'
+    await page.fill(google_password, password)
+    print(f'filled in {google_password}')
+
+    await click_on(page, 'Next', 'button')
+    await page.wait_for_load_state('commit', timeout=timeout) # ["commit", "domcontentloaded", "load", "networkidle"]
+    print('_commit')
+    await page.wait_for_load_state('networkidle', timeout=timeout) # ["commit", "domcontentloaded", "load", "networkidle"]
+    print(f'networkidle')
+    await click_on(page, 'Continue on Free', 'button')
+    await page.wait_for_load_state('networkidle', timeout=timeout) # ["commit", "domcontentloaded", "load", "networkidle"]
     print(f'_networkidle')
-    
-    #await print_all(page, '*')
+    await print_all(page, 'div')
+    return True
+
+
 
 """
     print(f'{await page.content()}')
