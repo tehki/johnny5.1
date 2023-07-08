@@ -43,12 +43,52 @@ async def tradingview_login(page: Page, login, password):
     await page.get_by_label("Password").fill(password)
     await page.get_by_role("button", name="Sign in").click()
 
+async def print_all(page: Page, objects = '*'):
+     # Get a list of all available locators on the page
+    locators = await page.query_selector_all(objects)
+    print(f'list of all {objects}\n***')
+    for locator in locators:
+         print(f'>> {await locator.text_content()}')
+    print('*** ***')
+
+async def click_on(page: Page, text, button='button'):
+    buttons = await page.query_selector_all(button)
+    for button in buttons:
+         button_text = await button.inner_text()
+         if button_text == text:
+              await button.click()
+              print(f'clicked {text}\n{button}')
+
 async def forefront_login(page: Page, login, timeout = 200000):
     print(f">> forefront login {login}")
-    await page.set_default_timeout(timeout)  # Set timeout to 200 seconds
-    await page.wait_for_load_state('domcontentloaded', timeout=timeout)
-    await page.locator("section").get_by_role("link", name="Login").click()
+    print(f'page:{page}')
+    #await page.set_default_timeout(timeout)  # Set timeout to 200 seconds
+    #print(f'timeout:{timeout}')
+    await page.wait_for_load_state('domcontentloaded')
+    print(f'domcontentloaded')
+
+    login = 'button:text("Login")'
+    await page.click(login)
+    print(f'clicked {login}')
+
     await page.wait_for_load_state('networkidle', timeout=timeout)
+    print(f'networkidle')
+
+    await print_all(page, 'button')
+    await click_on(page, 'Continue with Google', 'button')
+    # await buttons[0].click()
+    # print(f'clicked {buttons[0]}')   
+
+    await page.wait_for_load_state('networkidle', timeout=timeout)
+    print(f'_ networkidle')
+
+    # await print_all(page, 'button')
+
+
+"""
+    print(f'{await page.content()}')
+    await page.wait_for_load_state('networkidle', timeout=timeout)
+    print(f'networkidle loaded')
     await page.get_by_role("button", name="Sign in with Google Continue with Google").click()
     await page.get_by_role("textbox", name="Email or phone").click()
     await page.get_by_role("textbox", name="Email or phone").fill(login)
@@ -76,21 +116,19 @@ async def forefront_login(page: Page, login, timeout = 200000):
     await page.get_by_text("🧱 Hello! Yes, I can tell you the current date. Today is [current date]. How can").click()
     await page.get_by_text("🧱 Thank you! I'm glad you found it amusing. If you have any specific requests o").click()
     # ---------------------
-
+"""
+    
 async def extract_buttons_and_text(page: Page):
         # Find all buttons
         buttons = await page.query_selector_all('button')
         button_texts = [await button.text_content() for button in buttons]
 
-        # Find all text from divs
-        divs = await page.query_selector_all('div')
-        div_texts = [await div.text_content() for div in divs]
 
         # Output buttons 
-        print(f'>> buttons:\n{buttons}')
-        print(f'>> button texts:\n{button_texts}')
-        print(f'>> divs:\n{divs}')
-        print(f'>> divs_texts:\n{div_texts}')
+        #print(f'>> buttons:\n{buttons}')
+        #print(f'>> button texts:\n{button_texts}')
+        #print(f'>> divs:\n{divs}')
+        #print(f'>> divs_texts:\n{div_texts}')
 
         # Click the first button if there is at least one
         """
