@@ -43,59 +43,39 @@ async def tradingview_login(page: Page, login, password):
     await page.get_by_label("Password").fill(password)
     await page.get_by_role("button", name="Sign in").click()
 
-async def forefront_login(page: Page, login):
-    print(f'>>> forefront login')
-    buttons = await page.query_selector_all('button')
-    button_texts = [await button.text_content() for button in buttons]
-    print(f'button_texts:{button_texts}')
-    for button in buttons:
-        print(f'>>> button {button}')
-        if await button.text_content() == 'Login':
-            # search for the buttons
-            print(f'>>>> clicking Login {button}')
-            await button.click() # page.get_by_role("button", name="Login").click()
-
-        if await button.text_content() == 'Sign in with Google Continue with Google':
-            print(f'>>>> clicking Sign in with Google {button}')
-            await button.click() # page.get_by_role("button", name="Sign in with Google Continue with Google").click()
-
-    textboxes = await page.query_selector_all('textbox')
-    textboxes_texts = [await txtbox.text_content() for txtbox in textboxes]
-    print(f'txtboxes:{textboxes_texts}')
-
-    buttons = await page.query_selector_all('button')
-    button_texts = [await button.text_content() for button in buttons]
-    for button in buttons:
-        if button.text_content() == 'Continue on Free':
-             await button.click() # page.get_by_role("button", name="Continue on Free").click()
-
-    for textbox in textboxes:
-         print(f'txtbox:{textbox}')
-
-         if await textbox.text_content() == 'Email or phone':
-            await textbox.click()
-            await page.get_by_role("textbox", name="Email or phone").click()
-            await page.get_by_role("textbox", name="Email or phone").fill(login)
-            await page.get_by_role("textbox", name="Email or phone").press("Enter")
-    
+async def forefront_login(page: Page, login, timeout = 200000):
+    print(f">> forefront login {login}")
+    await page.set_default_timeout(timeout)  # Set timeout to 200 seconds
+    await page.wait_for_load_state('domcontentloaded', timeout=timeout)
+    await page.locator("section").get_by_role("link", name="Login").click()
+    await page.wait_for_load_state('networkidle', timeout=timeout)
+    await page.get_by_role("button", name="Sign in with Google Continue with Google").click()
+    await page.get_by_role("textbox", name="Email or phone").click()
+    await page.get_by_role("textbox", name="Email or phone").fill(login)
+    await page.get_by_role("textbox", name="Email or phone").press("Enter")
+    await page.wait_for_load_state('networkidle', timeout=timeout)
+    await page.goto("https://accounts.google.ru/accounts/SetSID")
+    await page.wait_for_load_state('networkidle', timeout=timeout)
+    await page.goto("https://chat.forefront.ai/")
+    await page.wait_for_load_state('networkidle')
+    await page.get_by_role("button", name="Continue on Free").click()
+    await page.wait_for_load_state('networkidle')
     await page.get_by_role("textbox").locator("div").click()
-
-    print('>>> yo yo yo how r u')
-    await page.get_by_role("textbox").fill("Yo yo yo, how are u")
+    await page.get_by_role("textbox").locator("div").click()
+    await page.get_by_role("textbox").fill("hai hai")
     await page.get_by_role("textbox").press("Enter")
-    
-    output = page.locator("div:nth-child(2) > div:nth-child(4)")
-    print(f'{output}')
-    
-    """
+    await page.get_by_text("Hello! How can I assist you today?").click()
     await page.get_by_role("textbox").filter(has_text="Message GPT-3.5").locator("div").click()
-    await page.get_by_role("textbox").filter(has_text="Message GPT-3.5").fill("Good good! ")
+    await page.get_by_role("textbox").filter(has_text="Message GPT-3.5").fill("Please start every message with ")
+    await page.get_by_role("textbox").filter(has_text="Please start every message with").locator("div").click()
+    await page.get_by_role("textbox").filter(has_text="Please start every message with").fill("Please start every message with 🧱 symbol. Do you know what the day is it today")
+    await page.get_by_role("textbox").filter(has_text="Please start every message with").press("Enter")
+    await page.get_by_role("textbox").filter(has_text="Message GPT-3.5").locator("div").click()
+    await page.get_by_role("textbox").filter(has_text="Message GPT-3.5").fill("Great joke")
     await page.get_by_role("textbox").filter(has_text="Message GPT-3.5").press("Enter")
-    output2 = page.locator("div:nth-child(8)")
-    print(f'{output2}')
-    """
-    print(f'{await page.content()}')
-    print(f'--- the end of forefront login ---')
+    await page.get_by_text("🧱 Hello! Yes, I can tell you the current date. Today is [current date]. How can").click()
+    await page.get_by_text("🧱 Thank you! I'm glad you found it amusing. If you have any specific requests o").click()
+    # ---------------------
 
 async def extract_buttons_and_text(page: Page):
         # Find all buttons

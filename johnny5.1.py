@@ -50,7 +50,7 @@ class Window(types.Message):
         self.context = await self.browser.new_context() # **iphone  TODO: many different contexts with vpn
         await self.body(f'', f'{emojis.web} ~web')
 
-    async def spider(self, url = ''): # returns window of a spider
+    async def spider(self, url = '', timeout=200000): # returns window of a spider
         if self.context is not None:
 
             await self.body(self.text+f'\n{current_time()} {emojis.spider} sending a spider to {url}') # logging an action to web.body
@@ -61,7 +61,7 @@ class Window(types.Message):
             self.pages[www.id] = page
             
             await page.set_viewport_size({'width': 800, 'height': 600})
-            await page.goto(url)
+            await page.goto(url, timeout, 'domcontentloaded')
             return www
 
     async def visiting(self, www, message): #TODO: Do we need message here or use self.message?
@@ -632,6 +632,7 @@ from web import extract_buttons_and_text
 from web import send_html
 from web import forefront_login
 from config import gmail_login
+from playwright.async_api import Page
 # /web
 @johnny.message_handler(commands='web')
 async def web(message: types.Message) -> None:
@@ -646,11 +647,12 @@ async def web(message: types.Message) -> None:
     async with async_playwright() as playwright:
         await web.run(playwright)
 
-        www = await web.spider('https://chat.forefront.ai/')      
-        page = web.pages[www.id]
-        print(f'page.url:{page.url}')
-        await forefront_login(page, gmail_login)    
+        www = await web.spider('https://www.forefront.ai/') # TODO: ./ url
+        page: Page = web.pages[www.id]
         
+        print(f'page.url:{page.url}')
+        await forefront_login(page, gmail_login)
+
         await page.wait_for_load_state("networkidle") #TODO: look for new states
         await extract_buttons_and_text(page)
         await send_html(page, message, bot=johnny)
