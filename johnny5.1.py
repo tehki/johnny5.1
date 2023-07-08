@@ -46,7 +46,7 @@ class Window(types.Message):
         webkit = playwright.webkit
 
         # iphone = playwright.devices["iPhone 6"] # TODO: to emulate different devices
-        self.browser = await chrome.launch(headless=False) # TODO: implement browsers
+        self.browser = await firefox.launch(headless=False) # TODO: implement browsers
         self.context = await self.browser.new_context() # **iphone  TODO: many different contexts with vpn
         await self.body(f'', f'{emojis.web} ~web')
 

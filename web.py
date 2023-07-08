@@ -49,6 +49,8 @@ async def print_all(page: Page, objects = '*'):
     print(f'list of all {objects}\n***')
     for locator in locators:
          print(f'>> {await locator.text_content()}')
+         print(f'>> > {await locator.inner_html()} ')
+         print(f'{locator}')
     print('*** ***')
 
 async def click_on(page: Page, text, button='button'):
@@ -67,32 +69,31 @@ async def forefront_login(page: Page, login, timeout = 200000):
     await page.wait_for_load_state('domcontentloaded')
     print(f'domcontentloaded')
 
-    login = 'button:text("Login")'
-    await page.click(login)
-    print(f'clicked {login}')
+    button = 'button:text("Login")'
+    await page.click(button)
+    print(f'clicked {button}')
 
     await page.wait_for_load_state('networkidle', timeout=timeout)
     print(f'networkidle')
 
-    await print_all(page, 'button')
     await click_on(page, 'Continue with Google', 'button')
-    # await buttons[0].click()
-    # print(f'clicked {buttons[0]}')   
-
     await page.wait_for_load_state('networkidle', timeout=timeout)
-    print(f'_ networkidle')
+    print(f'networkidle')
 
-    # await print_all(page, 'button')
+    await print_all(page, 'input')
+    # Find all textbox elements on the page
+    google_email = 'input[type="email"]'
+    await page.fill(google_email, login)
+    print(f'filled in {google_email} with {login}')
 
+    #await print_all(page, '*')
+    await page.wait_for_load_state('networkidle', timeout=timeout)
+    print(f'_networkidle')
+    
+    #await print_all(page, '*')
 
 """
     print(f'{await page.content()}')
-    await page.wait_for_load_state('networkidle', timeout=timeout)
-    print(f'networkidle loaded')
-    await page.get_by_role("button", name="Sign in with Google Continue with Google").click()
-    await page.get_by_role("textbox", name="Email or phone").click()
-    await page.get_by_role("textbox", name="Email or phone").fill(login)
-    await page.get_by_role("textbox", name="Email or phone").press("Enter")
     await page.wait_for_load_state('networkidle', timeout=timeout)
     await page.goto("https://accounts.google.ru/accounts/SetSID")
     await page.wait_for_load_state('networkidle', timeout=timeout)
