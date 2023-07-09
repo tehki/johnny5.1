@@ -380,8 +380,8 @@ async def web(message: types.Message) -> None:
             # TODO: create Forefront console
             await page.wait_for_load_state("networkidle")
             await forefront_input(page, 'Hi mate, could you help me please?')
-            
-            # 'Be so kind to start every message with 🕷️ and end it with 🕷️ as well'
+            await forefront_input(page, 'Be so kind to start every message with 🕷️ and end it with 🕷️ as well')
+            await asyncio.sleep(process_delay)
 
         await extract_buttons_and_text(page)
         await send_html(page, message, bot=johnny)

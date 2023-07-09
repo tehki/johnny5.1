@@ -81,7 +81,8 @@ async def tradingview_login(page: Page, login, password):
     await page.get_by_role("button", name="Sign in").click()
 
 async def print_all(page: Page, objects = '*'):
-     # Get a list of all available locators on the page
+    # Get a list of all available locators on the page
+    # print(f'{page}')
     locators = await page.query_selector_all(objects)
     print(f'list of all {objects}\n***')
     for locator in locators:
@@ -98,14 +99,20 @@ async def click_on(page: Page, text, button='button'):
               await button.click()
               print(f'clicked {text}\n{button}')
 
-async def forefront_input(page: Page, text):
+async def forefront_input(page: Page, text, timeout = 200000):
     print('>> forefront input')
-    await page.get_by_role("textbox").click()
-    await print_all('*')
-    #await page.get_by_role("textbox").fill(text)
-    #await page.get_by_role("textbox").press("Enter")
-    #
-#TODO: forefront output await page.get_by_text("Hello!").click()
+    # await print_all(page, '[contenteditable="true"]')
+
+    sel = '[contenteditable="true"]'
+    msg = await page.query_selector(sel)
+    if msg is not None:
+        await msg.click()
+        await msg.click()
+        await msg.type(text)
+        await msg.press('Enter')
+        await page.wait_for_load_state('load', timeout=timeout) # ["commit", "domcontentloaded", "load", "networkidle"]
+        print(f'> {text}')
+        print(f'load')
 
 async def forefront_login(page: Page, login, password, timeout = 200000):
     print(f">> forefront login {login}")
@@ -155,20 +162,11 @@ async def forefront_login(page: Page, login, password, timeout = 200000):
     await click_on(page, 'Continue on Free', 'button')
     await page.wait_for_load_state('networkidle', timeout=timeout) # ["commit", "domcontentloaded", "load", "networkidle"]
     print(f'_networkidle')
-    await print_all(page, 'div')
+    # await print_all(page, 'div')
     return True
-
-
 
 """
     print(f'{await page.content()}')
-    await page.wait_for_load_state('networkidle', timeout=timeout)
-    await page.goto("https://accounts.google.ru/accounts/SetSID")
-    await page.wait_for_load_state('networkidle', timeout=timeout)
-    await page.goto("https://chat.forefront.ai/")
-    await page.wait_for_load_state('networkidle')
-    await page.get_by_role("button", name="Continue on Free").click()
-    await page.wait_for_load_state('networkidle')
     await page.get_by_role("textbox").locator("div").click()
     await page.get_by_role("textbox").locator("div").click()
     await page.get_by_role("textbox").fill("hai hai")
