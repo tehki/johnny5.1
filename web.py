@@ -100,9 +100,11 @@ async def click_on(page: Page, text, button='button'):
               print(f'clicked {text}\n{button}')
 
 async def forefront_output(page: Page):
+    print('>> forefront output')
     sel = 'div[class="post-markdown flex flex-col gap-4 text-th-primary-dark text-base "]'
     divs = await page.query_selector_all(sel)
     texts = [await div.text_content() for div in divs]
+    print(texts)
     return texts 
 
 async def forefront_input(page: Page, text, timeout = 200000):

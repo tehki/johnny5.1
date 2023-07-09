@@ -129,20 +129,25 @@ class Window(types.Message):
     def create(self):
         create_task = self.loop.create_task(self.async_create())
         self.loop.run_until_complete(asyncio.gather(create_task))
-    def destroy(self): # TODO: Test
+
+    async def destroy(self): # TODO: Test
         success = False
         global Windows, _debug
         if _debug:
             print(f'{self.message.message_id}:destroy\nwindows:\n{Windows}')  
         # Find and remove an instance from the list
+        
+        print(f'We are in destroy (self)... success is {success}')
         for win in Windows:
             if win.message.id == self.message.message_id:
+                print(f'Found the message... of self destruction? {win.message.id}')
                 destroy_task = self.loop.create_task(self.async_destroy())
                 self.loop.run_until_complete(asyncio.gather(destroy_task))
                 Windows.remove(win)
                 success = True
                 break
-        return success   
+        return success
+    
     async def body(self, text=None, title=None, keyboard=None):
         output = ''
         
@@ -233,10 +238,14 @@ class Window(types.Message):
             self.id = self.message.message_id
 
     async def async_destroy(self):
-        if self.message is not None:
-            await self.bot.delete_message(self.chat.id, self.message.message_id)
-            self.message = None
+        print(f'>>> async_destroy()\n{self.id}')
         if self.browser is not None: # TODO: Many browsers and contextes
+            print(f'>> closing browser\n{self.browser}')
             await self.browser.close()
             self.context = None
             self.browser = None
+        if self.message is not None:
+            print(f'>> deleting message via bot\n#{self.chat.id} : {self.message.message_id}')
+            await self.bot.delete_message(self.chat.id, self.message.message_id)
+            self.message = None
+            print(f'>> self.message is None now.')

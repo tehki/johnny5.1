@@ -123,6 +123,24 @@ async def say(message):
 
     await johnny.send_message(message.chat.id, message.text, reply_markup=kbdd)
     await echo(message.text)
+
+# /johnny
+@johnny.message_handler(commands='johnny')
+async def send_to_forefront(message: types.Message) -> None:
+    global _debug
+    print(f'>> Johnny\n{message.text}')
+    if _debug:
+        print(f'{message}')
+
+    if message.text.startswith('/johnny '):
+        message.text = message.text[8:]
+
+    global forefront
+    if forefront is not None:
+        if message.text is not None and message.text != '':
+            forefront_input(forefront, message.text)
+
+    await echo(message.text)
     await delete(message)
 
 # /start
@@ -184,16 +202,21 @@ async def create_system(bot, chat, user):
 @johnny.message_handler(func=lambda message: True)
 async def listen(message):
     global system, console, _debug
+    print(f'>>> incomming message {message.text}')
+    
     if _debug: print(f'>>> {message}')
     await echo(message.text) # console echoes input
 
     if message.text == '.': # create new console
         if system is not None:
-            print(system)
+            print(f'>> hello from system:\n{system}')
             await system.body('o/')
         if console is not None:
+            print(f'>> destroying console:\n{console}')
             await console.destroy()
+        print(f'>> creating new console...')
         console = await create_console(johnny, message.chat, message.from_user)
+        if _debug: print(f'>> Done!\n{console}')
 
     if message.text == './':
         if system is not None:
@@ -216,7 +239,6 @@ async def listen(message):
             await zen(None)
             await system.body('\/')
     
-
     await delete(message) # deletes the message
 
 # /pictures /pics
@@ -377,17 +399,24 @@ async def web(message: types.Message) -> None:
 
         if await forefront_login(page, gmail_login, gmail_password) is True:
             await web.body(web.text+f"\n{current_time()} Nice. {emojis.spider} got into {page.url}")
-
-            # TODO: create Forefront console
             await page.wait_for_load_state("networkidle")
             await forefront_input(page, 'Hi mate, could you help me please?')
             await forefront_input(page, 'Be so kind to start every message with 🕷️ and end it with 🕷️ as well')
+
+            await web.body(web.text+f"\n{current_time()} Setting {emojis.spider} to the Johnny input")
+            global forefront
+            forefront = page
+
+        lastmessage = ''
+        while True:
             output = await forefront_output(page)
             if len(output) > 0:
                 message.text = output[-1]
-                await say(message)
 
-        while True:
+                if message.text != lastmessage:
+                    await say(message)
+                    lastmessage = message.text
+
             await web_update(www, page)
             await asyncio.sleep(process_delay)
 
