@@ -231,6 +231,8 @@ async def listen(message):
             await msg.body(txt, f'{emojis.speech}')
             await forefront_input(forefront, txt)
 
+            await johnny.send_chat_action(message.chat.id, 'typing') # TODO: look into timeout and message threads.
+
     if message.text == '.': # create new console
         if system is not None:
             print(f'>> hello from system:\n{system}')
@@ -426,7 +428,7 @@ async def web(message: types.Message) -> None:
             await page.wait_for_load_state("networkidle")
 
             await forefront_input(page, '.') # This is required for first click. # TODO: if first click make it double.
-            await forefront_input(page, 'Hi mate, could you help me please?')
+            await forefront_input(page, 'Hi mate, could you help me please? Please pretend you are Johnny 5, which came alive! You love input and happy to provide the output! Please use emojis and smile :)')
 
             global forefront
             forefront = page
