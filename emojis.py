@@ -1,3 +1,4 @@
+robot = '🤖'
 group = '👥'
 user = '👤'
 speech = '💬'

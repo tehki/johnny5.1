@@ -130,7 +130,7 @@ class Window(types.Message):
         create_task = self.loop.create_task(self.async_create())
         self.loop.run_until_complete(asyncio.gather(create_task))
 
-    async def destroy(self): # TODO: Test
+    async def destroy(self):
         success = False
         global Windows, _debug
         if _debug:

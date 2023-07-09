@@ -227,8 +227,8 @@ async def listen(message):
         # TODO: Auth with different users!
         txt: str = message.text
         if txt.startswith('.') is False and txt.startswith('/') is False and txt.startswith('o/') is False:
-            # msg = Window(johnny, chat, user) # TODO: Reply only where allowed.
-            # await msg.body(txt, f'{emojis.speech}')
+            msg = Window(johnny, chat, user)
+            await msg.body(txt, f'{emojis.speech}')
             await forefront_input(forefront, txt)
 
     if message.text == '.': # create new console
@@ -447,12 +447,18 @@ async def web(message: types.Message) -> None:
                         message.text = message.text.replace(lastmessage, '')
                     await say(message)
                     lastmessage = output[-1]
-                
-                global Windows
-                for wnd in Windows:
-                    if wnd.title == emojis.spider:
-                        await wnd.body(output[-1])
 
+                    global Windows
+                    
+                    new = []
+                    for wnd in Windows:
+                        if wnd.title == emojis.spider:
+                            await wnd.body(title=emojis.web)
+                            new.append(wnd)
+                    for wnd in new:    
+                        spider = Window(wnd.bot, wnd.chat, wnd.user)
+                        await spider.body(output[-1], emojis.spider)
+                            
             await page.mouse.wheel(0, 100)
             await web_update(www, page)
             await asyncio.sleep(process_delay)
