@@ -393,14 +393,11 @@ async def handle_dice(message):
 
 ### WEB PART ###
 from playwright.async_api import Playwright, async_playwright, expect
-
-from web import extract_text, print_all
-from web import send_html
+from playwright.async_api import Page
 from web import forefront_login, forefront_input, forefront_output
 from web import web_update
-from config import gmail_login, gmail_password
-from playwright.async_api import Page
 
+from config import gmail_login, gmail_password
 # /web
 @johnny.message_handler(commands='web')
 async def web(message: types.Message) -> None:
