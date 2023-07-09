@@ -405,7 +405,7 @@ from playwright.async_api import Page
 @johnny.message_handler(commands='web')
 async def web(message: types.Message) -> None:
     global _debug
-    headless = True
+    headless = False
 
     chat = message.chat
     user = message.from_user
