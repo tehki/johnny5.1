@@ -1,3 +1,4 @@
+speech = '💬'
 fire = '🔥'
 spider = '🕷️'
 window = '🗔'

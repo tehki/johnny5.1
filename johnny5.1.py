@@ -203,17 +203,23 @@ async def create_system(bot, chat, user):
 # Handle all incoming text messages
 @johnny.message_handler(func=lambda message: True)
 async def listen(message):
+    await delete(message) # deletes the message
     global system, console, _debug
     print(f'>>> incomming message {message.text}')
     
     if _debug: print(f'>>> {message}')
     await echo(message.text) # console echoes input
 
+    user = message.from_user
+    chat = message.chat    
     global forefront
     if forefront is not None:
+        
         txt: str = message.text
-        if txt.lower().startswith('джонни, ') or txt.lower().startswith('johnny, '):
-            await forefront_input(forefront, txt[8:])
+        if txt.startswith('.') is False and txt.startswith('/') is False and txt.startswith('o/') is False:
+            msg = Window(johnny, chat, user)
+            await msg.body(txt, f'{emojis.speech}')
+            await forefront_input(forefront, txt)
 
     if message.text == '.': # create new console
         if system is not None:
@@ -246,8 +252,6 @@ async def listen(message):
         elif message.text == '\/':
             await zen(None)
             await system.body('\/')
-    
-    await delete(message) # deletes the message
 
 # /pictures /pics
 @johnny.message_handler(commands=['pictures', 'pics'])
@@ -384,10 +388,13 @@ from web import forefront_login, forefront_input, forefront_output
 from web import web_update
 from config import gmail_login, gmail_password
 from playwright.async_api import Page
+
 # /web
 @johnny.message_handler(commands='web')
 async def web(message: types.Message) -> None:
     global _debug
+    headless = True
+    
     chat = message.chat
     user = message.from_user
 
@@ -396,7 +403,7 @@ async def web(message: types.Message) -> None:
     await web.body(f'Entering {emojis.web} ~web')
 
     async with async_playwright() as playwright:
-        await web.run(playwright)
+        await web.run(playwright, headless)
 
         www = await web.spider('https://chat.forefront.ai/') # TODO: ./ url
         page: Page = web.pages[www.id]
@@ -416,7 +423,7 @@ async def web(message: types.Message) -> None:
             forefront = page
             await web.body(web.text+f"\n{current_time()} {emojis.fire} Input is now available! Johnny 5 is alive.")
 
-        lastmessage = None
+        lastmessage = ''
         while True:
             output = await forefront_output(page)
             if len(output) > 0:

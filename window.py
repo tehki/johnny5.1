@@ -78,13 +78,13 @@ class Window(types.Message):
     context: BrowserContext = None
     pages = {}
 
-    async def run(self, playwright: PlaywrightContextManager): # runs a new browser context
+    async def run(self, playwright: PlaywrightContextManager, headless=True): # runs a new browser context
         chrome = playwright.chromium
         firefox = playwright.firefox
         webkit = playwright.webkit
 
         # iphone = playwright.devices["iPhone 6"] # TODO: to emulate different devices
-        self.browser = await firefox.launch(headless=False) # TODO: implement browsers
+        self.browser = await firefox.launch(headless=headless) # TODO: implement browsers
         self.context = await self.browser.new_context() # **iphone  TODO: many different contexts with vpn
         await self.body(f'', f'{emojis.web} ~web')
 
