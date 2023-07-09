@@ -221,10 +221,6 @@ async def listen(message):
             msg = Window(johnny, chat, user)
             await msg.body(txt, f'{emojis.speech}')
             await forefront_input(forefront, txt)
-            
-            await forefront.wait_for_load_state('networkidle') # ["commit", "domcontentloaded", "load", "networkidle"]
-            message.text = await forefront_output(forefront)
-            await say(message)
 
     if message.text == '.': # create new console
         if system is not None:
