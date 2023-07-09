@@ -207,14 +207,14 @@ async def listen(message):
     global system, console, _debug
     print(f'>>> incomming message {message.text}')
     if _debug: print(f'>>> {message}')
-    user = message.from_user
-    chat = message.chat
+    user: types.User = message.from_user
+    chat: types.Chat = message.chat
 
     global Allowed
-    if chat not in Allowed:
+    if chat.id not in Allowed:
         if message.text == '.':
             print(f"Now I am allowed at {chat.id}")
-            Allowed.append(chat)
+            Allowed.append(chat.id)
         else:
             print(f"I'm not allowed at {chat.id}")
             return
