@@ -214,12 +214,17 @@ async def listen(message):
     chat = message.chat    
     global forefront
     if forefront is not None:
-        
+        # TODO: Auth with different users!
+
         txt: str = message.text
         if txt.startswith('.') is False and txt.startswith('/') is False and txt.startswith('o/') is False:
             msg = Window(johnny, chat, user)
             await msg.body(txt, f'{emojis.speech}')
             await forefront_input(forefront, txt)
+            
+            await forefront.wait_for_load_state('networkidle') # ["commit", "domcontentloaded", "load", "networkidle"]
+            message.text = await forefront_output(forefront)
+            await say(message)
 
     if message.text == '.': # create new console
         if system is not None:
@@ -394,7 +399,7 @@ from playwright.async_api import Page
 async def web(message: types.Message) -> None:
     global _debug
     headless = True
-    
+
     chat = message.chat
     user = message.from_user
 
