@@ -94,7 +94,7 @@ class Window(types.Message):
             await self.body(self.text+f'\n{current_time()} {emojis.spider} sending a spider to {url}') # logging an action to web.body
             #TODO: may be a bad idea due to message size restriction. check text size of the message
             page = await self.context.new_page()
-            www = Window(self.bot, self.chat, self.user, pics.enso, keyboard(close=True))
+            www = Window(self.bot, self.chat, self.user, pics.enso) # TODO: add keyboard to spider
             await www.body('', f'{emojis.spider} ~spider')
             self.pages[www.id] = page
             

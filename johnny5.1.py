@@ -37,6 +37,8 @@ global johnny
 johnny = AsyncTeleBot (config.johnny5_bot_token)
 # johnny.parse_mode = None
 johnny.parse_mode = "html"
+global forefront
+forefront = None
 
 global system, process, console # type.Window
 system = None
@@ -122,7 +124,7 @@ async def say(message):
     kbdd = kbd(message.text)
 
     await johnny.send_message(message.chat.id, message.text, reply_markup=kbdd)
-    await echo(message.text)
+    # await echo(message.text)
 
 # /johnny
 @johnny.message_handler(commands='johnny')
@@ -138,7 +140,7 @@ async def send_to_forefront(message: types.Message) -> None:
     global forefront
     if forefront is not None:
         if message.text is not None and message.text != '':
-            forefront_input(forefront, message.text)
+            await forefront_input(forefront, message.text)
 
     await echo(message.text)
     await delete(message)
@@ -206,6 +208,12 @@ async def listen(message):
     
     if _debug: print(f'>>> {message}')
     await echo(message.text) # console echoes input
+
+    global forefront
+    if forefront is not None:
+        txt: str = message.text
+        if txt.lower().startswith('джонни, ') or txt.lower().startswith('johnny, '):
+            await forefront_input(forefront, txt[8:])
 
     if message.text == '.': # create new console
         if system is not None:
@@ -400,23 +408,28 @@ async def web(message: types.Message) -> None:
         if await forefront_login(page, gmail_login, gmail_password) is True:
             await web.body(web.text+f"\n{current_time()} Nice. {emojis.spider} got into {page.url}")
             await page.wait_for_load_state("networkidle")
-            await forefront_input(page, 'Hi mate, could you help me please?')
-            await forefront_input(page, 'Be so kind to start every message with 🕷️ and end it with 🕷️ as well')
 
-            await web.body(web.text+f"\n{current_time()} Setting {emojis.spider} to the Johnny input")
+            await forefront_input(page, '.') # This is required for first click. # TODO: if first click make it double.
+            await forefront_input(page, 'Hi mate, could you help me please?')
+
             global forefront
             forefront = page
+            await web.body(web.text+f"\n{current_time()} {emojis.fire} Input is now available! Johnny 5 is alive.")
 
-        lastmessage = ''
+        lastmessage = None
         while True:
             output = await forefront_output(page)
             if len(output) > 0:
                 message.text = output[-1]
 
                 if message.text != lastmessage:
+                    if message.text.find(lastmessage) == 0:
+                        print(f"Substring found! {message.text.find(lastmessage)}")
+                        message.text = message.text.replace(lastmessage, '')
                     await say(message)
-                    lastmessage = message.text
+                    lastmessage = output[-1]
 
+            await page.mouse.wheel(0, 100)
             await web_update(www, page)
             await asyncio.sleep(process_delay)
 

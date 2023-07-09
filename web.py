@@ -114,8 +114,7 @@ async def forefront_input(page: Page, text, timeout = 200000):
     sel = '[contenteditable="true"]'
     msg = await page.query_selector(sel)
     if msg is not None:
-        await msg.click()
-        await msg.click()
+        await msg.click(timeout=timeout)
         await msg.type(text)
         await msg.press('Enter')
         await page.wait_for_load_state('load', timeout=timeout) # ["commit", "domcontentloaded", "load", "networkidle"]
