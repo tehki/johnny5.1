@@ -348,9 +348,9 @@ async def handle_dice(message):
 ### WEB PART ###
 from playwright.async_api import Playwright, async_playwright, expect
 
-from web import extract_buttons_and_text
+from web import extract_text
 from web import send_html
-from web import forefront_login, forefront_input
+from web import forefront_login, forefront_input, forefront_output
 from web import web_update
 from config import gmail_login, gmail_password
 from playwright.async_api import Page
@@ -381,10 +381,10 @@ async def web(message: types.Message) -> None:
             await page.wait_for_load_state("networkidle")
             await forefront_input(page, 'Hi mate, could you help me please?')
             await forefront_input(page, 'Be so kind to start every message with 🕷️ and end it with 🕷️ as well')
-            await asyncio.sleep(process_delay)
+            await fore
 
-        await extract_buttons_and_text(page)
-        await send_html(page, message, bot=johnny)
+        # await extract_text(page)
+        # await send_html(page, message, bot=johnny)
 
         while True:
             await web_update(www, page)

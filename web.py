@@ -99,6 +99,12 @@ async def click_on(page: Page, text, button='button'):
               await button.click()
               print(f'clicked {text}\n{button}')
 
+async def forefront_output(page: Page):
+    sel = 'div[class="post-markdown flex flex-col gap-4 text-th-primary-dark text-base "]'
+    divs = await page.query_selector_all(sel)
+    texts = [await div.text_content() for div in divs]
+    return texts 
+
 async def forefront_input(page: Page, text, timeout = 200000):
     print('>> forefront input')
     # await print_all(page, '[contenteditable="true"]')
@@ -164,42 +170,9 @@ async def forefront_login(page: Page, login, password, timeout = 200000):
     print(f'_networkidle')
     # await print_all(page, 'div')
     return True
-
-"""
-    print(f'{await page.content()}')
-    await page.get_by_role("textbox").locator("div").click()
-    await page.get_by_role("textbox").locator("div").click()
-    await page.get_by_role("textbox").fill("hai hai")
-    await page.get_by_role("textbox").press("Enter")
-    await page.get_by_text("Hello! How can I assist you today?").click()
-    await page.get_by_role("textbox").filter(has_text="Message GPT-3.5").locator("div").click()
-    await page.get_by_role("textbox").filter(has_text="Message GPT-3.5").fill("Please start every message with ")
-    await page.get_by_role("textbox").filter(has_text="Please start every message with").locator("div").click()
-    await page.get_by_role("textbox").filter(has_text="Please start every message with").fill("Please start every message with 🧱 symbol. Do you know what the day is it today")
-    await page.get_by_role("textbox").filter(has_text="Please start every message with").press("Enter")
-    await page.get_by_role("textbox").filter(has_text="Message GPT-3.5").locator("div").click()
-    await page.get_by_role("textbox").filter(has_text="Message GPT-3.5").fill("Great joke")
-    await page.get_by_role("textbox").filter(has_text="Message GPT-3.5").press("Enter")
-    await page.get_by_text("🧱 Hello! Yes, I can tell you the current date. Today is [current date]. How can").click()
-    await page.get_by_text("🧱 Thank you! I'm glad you found it amusing. If you have any specific requests o").click()
-    # ---------------------
-"""
     
-async def extract_buttons_and_text(page: Page):
-        # Find all buttons
-        buttons = await page.query_selector_all('button')
-        button_texts = [await button.text_content() for button in buttons]
-
-
-        # Output buttons 
-        #print(f'>> buttons:\n{buttons}')
-        #print(f'>> button texts:\n{button_texts}')
-        #print(f'>> divs:\n{divs}')
-        #print(f'>> divs_texts:\n{div_texts}')
-
-        # Click the first button if there is at least one
-        """
-        if buttons:
-            print(f'>> clicking {buttons[0]}')
-            await buttons[0].click()
-        """
+async def extract_text(page: Page, selector = '*'):
+        sel = 'div[class="post-markdown flex flex-col gap-4 text-th-primary-dark text-base "]'
+        divs = await page.query_selector_all(sel)
+        texts = [await div.text_content() for div in divs]
+        print(f'>> extracting {sel} text:\n{texts}')
