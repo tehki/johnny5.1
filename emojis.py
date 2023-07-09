@@ -1,3 +1,5 @@
+group = '👥'
+user = '👤'
 speech = '💬'
 fire = '🔥'
 spider = '🕷️'

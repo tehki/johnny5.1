@@ -20,10 +20,11 @@ _debug = False
 # I'm here.
 # # hiding from pepe. 
 # . /\ \/ . / . o/ . /\ ./ ? . #
-global Chats, Users, Messages
+global Chats, Users, Messages, Allowed
 Chats = [] # types.Chat
 Users = [] # types.User
 Messages = [] # types.Message
+Allowed = [] # Chats where bot is allowed to talk and delete messages
 
 global Windows
 from window import Windows
@@ -54,6 +55,7 @@ async def delete(message):
     if message is not None:
         if await johnny.delete_message(message.chat.id, message.message_id):
             message = None
+
 async def update():
     global Windows, system
     if system._zen:
@@ -122,14 +124,14 @@ async def say(message):
         message.text = message.text[5:]
 
     kbdd = kbd(message.text)
-
     await johnny.send_message(message.chat.id, message.text, reply_markup=kbdd)
-    # await echo(message.text)
 
 # /johnny
 @johnny.message_handler(commands='johnny')
 async def send_to_forefront(message: types.Message) -> None:
     global _debug
+    await echo(message.text)
+    await delete(message)
     print(f'>> Johnny\n{message.text}')
     if _debug:
         print(f'{message}')
@@ -142,12 +144,11 @@ async def send_to_forefront(message: types.Message) -> None:
         if message.text is not None and message.text != '':
             await forefront_input(forefront, message.text)
 
-    await echo(message.text)
-    await delete(message)
-
 # /start
 @johnny.message_handler(commands=['start'])
 async def start(message):
+    await echo(message.text)
+    await delete(message)
     global Chats, Users, Messages, Windows
 
     # TODO: Needs to be done for every inc. message and command
@@ -175,6 +176,8 @@ async def start(message):
 # /windows
 @johnny.message_handler(commands=['windows'])
 async def windows(message):
+    await echo(message.text)
+    await delete(message)
     global Windows, system
     if system is not None:
         system.text = f"Windows?"
@@ -182,12 +185,10 @@ async def windows(message):
             system.text += f'\n{wnd.to_json()}'
 
         await system.body()
-    await echo(message.text)
-    await delete(message)
 
 async def create_console(bot, chat, user):
     console = Window(bot, chat, user)
-    await console.body(f'{user.username}', f'{emojis.window} ~console')
+    await console.body(f'{emojis.user} {user.username}', f'{emojis.window} ~console')
     return console
 
 async def create_system(bot, chat, user):
@@ -203,23 +204,31 @@ async def create_system(bot, chat, user):
 # Handle all incoming text messages
 @johnny.message_handler(func=lambda message: True)
 async def listen(message):
-    await delete(message) # deletes the message
     global system, console, _debug
     print(f'>>> incomming message {message.text}')
-    
     if _debug: print(f'>>> {message}')
-    await echo(message.text) # console echoes input
-
     user = message.from_user
-    chat = message.chat    
+    chat = message.chat
+
+    global Allowed
+    if chat not in Allowed:
+        if message.text == '.':
+            print(f"Now I am allowed at {chat.id}")
+            Allowed.append(chat)
+        else:
+            print(f"I'm not allowed at {chat.id}")
+            return
+
+    await echo(message.text) # console echoes input
+    await delete(message) # deletes the message
+
     global forefront
     if forefront is not None:
         # TODO: Auth with different users!
-
         txt: str = message.text
         if txt.startswith('.') is False and txt.startswith('/') is False and txt.startswith('o/') is False:
-            msg = Window(johnny, chat, user)
-            await msg.body(txt, f'{emojis.speech}')
+            # msg = Window(johnny, chat, user) # TODO: Reply only where allowed.
+            # await msg.body(txt, f'{emojis.speech}')
             await forefront_input(forefront, txt)
 
     if message.text == '.': # create new console
@@ -232,6 +241,8 @@ async def listen(message):
         print(f'>> creating new console...')
         console = await create_console(johnny, message.chat, message.from_user)
         if _debug: print(f'>> Done!\n{console}')
+        if forefront is not None:
+            await console.body(f'{console.text}\n{emojis.speech} Forefront is running')
 
     if message.text == './':
         if system is not None:
@@ -241,8 +252,8 @@ async def listen(message):
     if message.text == 'o/':
         if system is not None:
             await system.body('/\\')
-        new = Window(johnny, message.chat, message.from_user)
-        await new.body('hello? who am i?')
+        spider = Window(johnny, message.chat, message.from_user)
+        await spider.body(title=emojis.spider)
 
     if system is not None:    
         if message.text == '/\\':
@@ -436,6 +447,11 @@ async def web(message: types.Message) -> None:
                         message.text = message.text.replace(lastmessage, '')
                     await say(message)
                     lastmessage = output[-1]
+                
+                global Windows
+                for wnd in Windows:
+                    if wnd.title == emojis.spider:
+                        await wnd.body(output[-1])
 
             await page.mouse.wheel(0, 100)
             await web_update(www, page)
