@@ -1,3 +1,6 @@
+import pics
+import emojis
+
 from telebot import types
 from telebot.async_telebot import AsyncTeleBot
 from typing import Dict, List, Optional, Union
@@ -6,17 +9,13 @@ from playwright.async_api._context_manager import PlaywrightContextManager
 from playwright._impl._browser_context import BrowserContext
 from playwright._impl._browser_type import BrowserType
 
+from web import strip_html
+from web import load_cookies
+from utils import current_time
+
 import asyncio
 import nest_asyncio
 nest_asyncio.apply()
-
-import time
-def current_time():
-    return time.strftime('%H:%M:%S')
-
-import pics
-import emojis
-from web import strip_html
 
 # Debugging. Turn on/off.
 global _debug
@@ -67,6 +66,7 @@ def keyboard(roll=False, dot=False, hi=False, arigato=False, slash=False, close=
     if web:
         keyboard.add(create_button('🕸️'))
     return keyboard
+
 # Create a window
 class Window(types.Message):
     title = ''
@@ -78,7 +78,7 @@ class Window(types.Message):
     context: BrowserContext = None
     pages = {}
 
-    async def run(self, playwright: PlaywrightContextManager, headless=True): # runs a new browser context
+    async def run(self, playwright: PlaywrightContextManager, headless=True, cookie_file=''): # runs a new browser context
         chrome = playwright.chromium
         firefox = playwright.firefox
         webkit = playwright.webkit
@@ -87,6 +87,9 @@ class Window(types.Message):
         self.browser = await firefox.launch(headless=headless) # TODO: implement browsers
         self.context = await self.browser.new_context() # **iphone  TODO: many different contexts with vpn
         await self.body(f'', f'{emojis.web} ~web')
+
+        if cookie_file != '':
+            await load_cookies(self.context, cookie_file)
 
     async def spider(self, url = 'google.com'): # returns window of a spider
         if self.context is not None:

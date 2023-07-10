@@ -1,6 +1,4 @@
-from web import current_time
 import config
-
 import os
 
 from telebot import types
@@ -29,8 +27,8 @@ Allowed = [] # Chats where bot is allowed to talk and delete messages
 global Windows
 from window import Windows
 from window import Window
-from window import keyboard
-from window import kbd # kbd hacks
+from window import keyboard, kbd # kbd hacks
+from window import current_time
 import emojis
 import pics
 
@@ -397,7 +395,7 @@ async def handle_dice(message):
 from playwright.async_api import Playwright, async_playwright, expect
 from playwright.async_api import Page
 from web import forefront_login, forefront_input, forefront_output
-from web import web_update
+from web import web_update, save_cookies
 
 from config import gmail_login, gmail_password
 # /web
@@ -414,7 +412,7 @@ async def web(message: types.Message) -> None:
     await web.body(f'Entering {emojis.web} ~web')
 
     async with async_playwright() as playwright:
-        await web.run(playwright, headless)
+        await web.run(playwright, headless, 'cookies.json')
 
         www = await web.spider('https://chat.forefront.ai/') # TODO: ./ url
         page: Page = web.pages[www.id]
@@ -460,6 +458,7 @@ async def web(message: types.Message) -> None:
                             
             await page.mouse.wheel(0, 100)
             await web_update(www, page)
+            await save_cookies(web.context, 'cookies.json')
             await asyncio.sleep(process_delay)
 
         # ---------------------
