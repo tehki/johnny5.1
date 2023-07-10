@@ -231,7 +231,7 @@ async def listen(message):
             await msg.body(txt, f'{emojis.speech}')
             await forefront_input(forefront, txt)
 
-            await johnny.send_chat_action(message.chat.id, 'typing') # TODO: look into timeout and message threads.
+            await johnny.send_chat_action(message.chat.id, 'typing', message_thread_id=message.message_id) # TODO: look into timeout and message threads.
 
     if message.text == '.': # create new console
         if system is not None:
