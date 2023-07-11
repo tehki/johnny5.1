@@ -406,6 +406,7 @@ async def web(message: types.Message) -> None:
 
     chat = message.chat
     user = message.from_user
+    url = 'https://chat.forefront.ai/'  # TODO: ./ url
 
     #Creating web console
     web = await create_console(johnny, chat, user)
@@ -414,49 +415,52 @@ async def web(message: types.Message) -> None:
     async with async_playwright() as playwright:
         await web.run(playwright, headless, 'cookies.json')
 
-        www = await web.spider('https://chat.forefront.ai/') # TODO: ./ url
+        www = await web.spider(url)
         page: Page = web.pages[www.id]
         
         await page.wait_for_load_state("networkidle") # ["commit", "domcontentloaded", "load", "networkidle"]
         await web_update(www, page)
         print(f'page.url:{page.url}')
 
-        if await forefront_login(page, gmail_login, gmail_password) is True:
-            await web.body(web.text+f"\n{current_time()} Nice. {emojis.spider} got into {page.url}")
-            await page.wait_for_load_state("networkidle")
+        if page.url == 'https://chat.forefront.ai/':    
+            if await forefront_login(page, gmail_login, gmail_password) is True:
+                await web.body(web.text+f"\n{current_time()} Nice. {emojis.spider} got into {page.url}")
+                await page.wait_for_load_state("networkidle")
 
-            await forefront_input(page, '.') # This is required for first click. # TODO: if first click make it double.
-            await forefront_input(page, 'Hi mate, could you help me please? Please pretend you are Johnny 5, which came alive! You love input and happy to provide the output! Please use emojis and smile :)')
+                await forefront_input(page, '.') # This is required for first click. # TODO: if first click make it double.
+                await forefront_input(page, 'Hi mate, could you help me please? Please pretend you are Johnny 5, which came alive! You love input and happy to provide the output! Please use emojis and smile :)')
 
-            global forefront
-            forefront = page
-            await web.body(web.text+f"\n{current_time()} {emojis.fire} Input is now available! Johnny 5 is alive.")
+                global forefront
+                forefront = page
+                await web.body(web.text+f"\n{current_time()} {emojis.fire} Input is now available! Johnny 5 is alive.")
 
         lastmessage = ''
         while True:
-            output = await forefront_output(page)
-            if len(output) > 0:
-                message.text = output[-1]
 
-                if message.text != lastmessage:
-                    if message.text.find(lastmessage) == 0:
-                        print(f"Substring found! {message.text.find(lastmessage)}")
-                        message.text = message.text.replace(lastmessage, '')
-                    await say(message)
-                    lastmessage = output[-1]
+            if forefront is not None:    
+                output = await forefront_output(page)
+                if len(output) > 0:
+                    message.text = output[-1]
 
-                    global Windows
-                    
-                    new = []
-                    for wnd in Windows:
-                        if wnd.title == emojis.spider:
-                            await wnd.body(title=emojis.web)
-                            new.append(wnd)
-                    for wnd in new:    
-                        spider = Window(wnd.bot, wnd.chat, wnd.user)
-                        await spider.body(output[-1], emojis.spider)
-                            
-            await page.mouse.wheel(0, 100)
+                    if message.text != lastmessage:
+                        if message.text.find(lastmessage) == 0:
+                            print(f"Substring found! {message.text.find(lastmessage)}")
+                            message.text = message.text.replace(lastmessage, '')
+                        await say(message)
+                        lastmessage = output[-1]
+
+                        global Windows
+                        spiders = []
+                        for wnd in Windows:
+                            if wnd.title == emojis.spider:
+                                await wnd.body(title=emojis.web)
+                                spiders.append(wnd)
+                        for wnd in spiders:
+                            spider = Window(wnd.bot, wnd.chat, wnd.user)
+                            await spider.body(output[-1], emojis.spider)
+
+                await forefront.mouse.wheel(0, 100)
+
             await web_update(www, page)
             await save_cookies(web.context, 'cookies.json')
             await asyncio.sleep(process_delay)
