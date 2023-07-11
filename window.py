@@ -1,5 +1,6 @@
 import pics
 import emojis
+import json
 
 from telebot import types
 from telebot.async_telebot import AsyncTeleBot
@@ -75,6 +76,15 @@ class Window(types.Message):
     output = ''
     _zen = False
 
+    async def screen(self): # updates web page with fresh screenshot and returns a string path to screen.png of the message
+        screen_path = f'./screens/'
+        if self.message is not None:
+            screen_path += f'#{self.message.chat.id}.{self.message.message_id}.png'
+            if self.page is not None:
+                await self.page.screenshot(path=screen_path)
+                await self.head(screen_path)
+        return screen_path
+    
     async def run(self, playwright: PlaywrightContextManager, headless=True, cookie_file=''): # runs a new browser context
         chrome = playwright.chromium
         firefox = playwright.firefox
@@ -82,7 +92,10 @@ class Window(types.Message):
 
         # iphone = playwright.devices["iPhone 6"] # TODO: to emulate different devices
         self.browser = await firefox.launch(headless=headless) # TODO: implement browsers
-        self.context = await self.browser.new_context() # **iphone  TODO: many different contexts with vpn
+
+        vpn_config = None # TODO: VPN
+        
+        self.context = await self.browser.new_context(proxy=vpn_config) # **iphone  TODO: many different contexts with vpn
         await self.body(f'', f'{emojis.web} ~web')
 
         if cookie_file != '':
@@ -149,7 +162,6 @@ class Window(types.Message):
 
     async def body(self, text=None, title=None, keyboard=None):
         output = ''
-        
         if not self._zen:
             if title != None:
                 self.title = title
@@ -192,12 +204,12 @@ class Window(types.Message):
                 "user": self.user.username,
                 "chatid": self.chat.id,
                 "text": self.text}
+    
     async def async_update(self):
-        global _debug
+        global _debug   
         if self.message is not None:
             if _debug:
                 print(f'{self.message.message_id}:async_update:output({len(self.output)}):\n{self.output}')
-
             if self.photo is not None:
                 if strip_html(self.message.caption) != strip_html(self.output):
                     keyboard = None if self._zen else self.keyboard

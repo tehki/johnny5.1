@@ -54,16 +54,29 @@ async def delete(message):
         if await johnny.delete_message(message.chat.id, message.message_id):
             message = None
 
-async def update():
-    global Windows, system
-    if system._zen:
-        if system.photo != None:
-            await system.head(pics.zen)
-        for window in Windows.values():
-            await window.zen()
+# /update
+@johnny.message_handler(commands=['update'])
+async def update(message = None):
+    print("* Update *")
+    global Windows, system, forefront
+    if message is not None:
+        await echo(message.text)
+        await delete(message)
+    
+    if system is not None:
+        system.body(system.text+f'{current_time()} Updating...')
+        if system._zen:
+            if system.photo != None:
+                await system.head(pics.zen)
+            for window in Windows.values():
+                await window.zen()
+    
     for window in Windows.values():
-        await window.update()
-
+        if window.page is None:
+            await window.body()
+        else:
+            await window.body(f'{current_time()} {await window.screen()}', f'{emojis.spider} ~spider')
+            
 # Buttons callback
 @johnny.callback_query_handler(func=lambda call: True)
 async def handle_callback(call):
@@ -136,6 +149,26 @@ async def send_to_forefront(message: types.Message) -> None:
         if message.text is not None and message.text != '':
             await forefront_input(forefront, message.text)
 
+# /claude
+@johnny.message_handler(commands='claude')
+async def claude(message: types.Message) -> None:
+    await echo(message.text)
+    await delete(message)
+    if forefront is not None:
+        if await is_on_page(forefront.page, 'p:text("Claude Instant")'):
+            await forefront.page.click('p:text("Claude Instant")')
+            await forefront.screen()
+
+# /claude+
+@johnny.message_handler(commands='claude+')
+async def claudeplus(message: types.Message) -> None:
+    await echo(message.text)
+    await delete(message)
+    if forefront is not None:
+        if await is_on_page(forefront.page, 'p:text("Claude+")'):
+            await forefront.page.click('p:text("Claude+")')
+            await forefront.screen()
+
 # /gpt4
 @johnny.message_handler(commands='gpt4')
 async def gpt4(message: types.Message) -> None:
@@ -144,6 +177,7 @@ async def gpt4(message: types.Message) -> None:
     if forefront is not None:
         if await is_on_page(forefront.page, 'p:text("GPT-4")'):
             await forefront.page.click('p:text("GPT-4")')
+            await forefront.screen()
 
 # /gpt3
 @johnny.message_handler(commands='gpt3')
@@ -153,6 +187,7 @@ async def gpt4(message: types.Message) -> None:
     if forefront is not None:
         if await is_on_page(forefront.page, 'p:text("GPT-3.5")'):
             await forefront.page.click('p:text("GPT-3.5")')
+            await forefront.screen()
 
 # /isonpage
 from web import is_on_page
@@ -272,7 +307,7 @@ async def listen(message):
         if forefront is not None:
             await console.body(f'{console.text}\n{emojis.speech} Forefront is running')
 
-    if message.text == './':
+    if message.text.startswith('./'):
         if system is not None:
             await system.body('/web 🕸️')
         await web(message)
@@ -423,7 +458,7 @@ async def handle_dice(message):
 from playwright.async_api import Playwright, async_playwright, expect
 from playwright.async_api import Page
 from web import forefront_login, forefront_input, forefront_output
-from web import web_update, save_cookies, extract_urls
+from web import save_cookies, extract_urls
 
 from config import gmail_login, gmail_password
 # /web
@@ -437,6 +472,7 @@ async def web(message: types.Message) -> None:
 
     urls = await extract_urls(message.text)
     urls.append('https://chat.forefront.ai/')  # TODO: ./ url)
+    print(f'urls:\n{urls}')
 
     #Creating web console
     web = await create_console(johnny, chat, user)
@@ -449,7 +485,7 @@ async def web(message: types.Message) -> None:
             www = await web.spider(url)
             page: Page = www.page
             await page.wait_for_load_state("networkidle") # ["commit", "domcontentloaded", "load", "networkidle"]
-            await web_update(www)
+            await www.update()
             print(f'page.url:{page.url}')
 
             if page.url == 'https://chat.forefront.ai/':    
@@ -464,29 +500,26 @@ async def web(message: types.Message) -> None:
 
         lastmessage = ''
         while True:
+            await save_cookies(web.context, 'cookies.json')
+
             if forefront is not None:
                 output = await forefront_output(forefront.page)
                 if len(output) > 0:
                     message.text = output[-1]
-
                     if message.text != lastmessage:
                         if message.text.find(lastmessage) == 0:
                             message.text = message.text.replace(lastmessage, '')
                         await say(message)
                         lastmessage = output[-1]
-
                         global Windows # Refreshing spiders
                         spiders = [wnd for wnd in Windows.values() if wnd.title == emojis.spider]
                         for wnd in spiders:
                             await wnd.body(title=emojis.web)
                             spider = Window(wnd.bot, wnd.chat, wnd.user)
                             await spider.body(output[-1], emojis.spider)
-
                 await forefront.page.mouse.wheel(0, 100)
 
-            # TODO: update all pages
-            await web_update(www)
-            await save_cookies(web.context, 'cookies.json')
+            await update()
             await asyncio.sleep(process_delay)
 
         # ---------------------

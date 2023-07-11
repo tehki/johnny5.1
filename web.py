@@ -11,35 +11,10 @@ from utils import current_time
             <a href = 'http://www.example.com/'> inline URL </a>
             <a href = 'tg://user?id=123456789'> inline mention of a user</a>
 """
-def strip_html(text):
-    if text is not None and text != '':
-        output = text
-        output = re.sub(r'<b>', '', output)
-        output = re.sub(r'</b>', '', output)
-        output = re.sub(r'<i>', '', output)
-        output = re.sub(r'</i>', '', output)
-        output = re.sub(r'<em>', '', output)
-        output = re.sub(r'</em>', '', output)
-        output = re.sub(r'<pre>', '', output)
-        output = re.sub(r'</pre>', '', output)
-        output = re.sub(r'<code>', '', output)
-        output = re.sub(r'</code>', '', output)
-        output = re.sub(r'<strong>', '', output)
-        output = re.sub(r'</strong>', '', output)
-        output = re.sub(r'\n', '', output)
-        output = output.strip('\n')
-        output = output.strip()
-        return output
-    return text
 async def extract_urls(text):
     pattern = r'(https?://\S+)'
     urls = re.findall(pattern, text)
     return urls
-async def scrns(message:types.Message): # returns path to screen.png file of the message
-    screen_path = f'./screens/'
-    if message is not None:
-        screen_path += f'#{message.chat.id}.{message.message_id}.png'
-    return screen_path
 async def web_update(www): #TODO: Probably this needs to move to Window -> update()
             if www is not None:
                 if www.page is not None:
@@ -77,6 +52,28 @@ async def tradingview_login(page: Page, login, password):
     await page.get_by_label("Password").click()
     await page.get_by_label("Password").fill(password)
     await page.get_by_role("button", name="Sign in").click()
+
+def strip_html(text):
+    if text is not None and text != '':
+        output = text
+        output = re.sub(r'<b>', '', output)
+        output = re.sub(r'</b>', '', output)
+        output = re.sub(r'<i>', '', output)
+        output = re.sub(r'</i>', '', output)
+        output = re.sub(r'<em>', '', output)
+        output = re.sub(r'</em>', '', output)
+        output = re.sub(r'<pre>', '', output)
+        output = re.sub(r'</pre>', '', output)
+        output = re.sub(r'<code>', '', output)
+        output = re.sub(r'</code>', '', output)
+        output = re.sub(r'<strong>', '', output)
+        output = re.sub(r'</strong>', '', output)
+        output = re.sub(r'\n', '', output)
+        output = output.strip('\n')
+        output = output.strip()
+        return output
+    return text
+
 async def extract_text(page: Page, selector = '*'): 
         divs = await page.query_selector_all(selector)
         texts = [await div.text_content() for div in divs]
@@ -91,6 +88,7 @@ async def print_all(page: Page, objects = '*'):
          print(f'>> > {await locator.inner_html()} ')
          print(f'{locator}')
     print('*** ***')
+
 async def is_on_page(page: Page, selector: str):
     return await page.query_selector_all(selector)
 async def click_on(page: Page, text, button='button'):
@@ -101,20 +99,19 @@ async def click_on(page: Page, text, button='button'):
               await button.click()
               print(f'clicked {text}\n{button}')
 
-async def remove_html_tags(text):
+async def forefront_format(text):
     # Remove all HTML tags except <code> and </code>
     cleaned_text = re.sub(r'<(?!/?code\b)[^>]+>', '', text)
+    # Remove 'pythonCopy'
     cleaned_text = re.sub('pythonCopy', '', cleaned_text)
     return cleaned_text
-
 async def forefront_output(page: Page):
     print('>> forefront output')
     sel = 'div[class="post-markdown flex flex-col gap-4 text-th-primary-dark text-base "]'
     divs = await page.query_selector_all(sel)
-    htmls = [await remove_html_tags(await div.inner_html()) for div in divs]
+    htmls = [await forefront_format(await div.inner_html()) for div in divs]
     print(htmls)
     return htmls
-
 async def forefront_input(page: Page, text, timeout = 200000):
     print('>> forefront input')
     sel = '[contenteditable="true"]'
