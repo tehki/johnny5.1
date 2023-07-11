@@ -492,6 +492,8 @@ def listen(message):
         "username": "vpn_username",
         "password": "vpn_password"
         }
+
+    context = browser.new_context(proxy=vpn_config)
     """
 
     # Set up Google Mail SSO credentials
