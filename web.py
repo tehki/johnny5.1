@@ -31,7 +31,7 @@ def strip_html(text):
         output = output.strip()
         return output
     return text
-def extract_urls(text):
+async def extract_urls(text):
     pattern = r'(https?://\S+)'
     urls = re.findall(pattern, text)
     return urls
@@ -40,11 +40,11 @@ async def scrns(message:types.Message): # returns path to screen.png file of the
     if message is not None:
         screen_path += f'#{message.chat.id}.{message.message_id}.png'
     return screen_path
-async def web_update(www, page: Page):
+async def web_update(www):
             if www is not None:
-                if page is not None:
+                if www.page is not None:
                     screen_path = await scrns(www.message)    
-                    await page.screenshot(path=screen_path)
+                    await www.page.screenshot(path=screen_path)
                     await www.head(screen_path)
                     await www.body(f'{current_time()} {screen_path}', f'{emojis.spider} ~spider')
 async def save_cookies(context: BrowserContext, cookie_file = 'cookies.json'): # TODO: Consider multiple cookies files
@@ -91,6 +91,8 @@ async def print_all(page: Page, objects = '*'):
          print(f'>> > {await locator.inner_html()} ')
          print(f'{locator}')
     print('*** ***')
+async def is_on_page(page: Page, selector: str):
+    return await page.query_selector_all(selector)
 async def click_on(page: Page, text, button='button'):
     buttons = await page.query_selector_all(button)
     for button in buttons:
@@ -116,17 +118,11 @@ async def forefront_input(page: Page, text, timeout = 200000):
         await page.wait_for_load_state('load', timeout=timeout) # ["commit", "domcontentloaded", "load", "networkidle"]
         print(f'> {text}')
         print(f'load')
-
-async def is_on_page(page: Page, selector: str):
-    return await page.query_selector(selector)
-
 async def forefront_login(page: Page, login, password, timeout = 200000):
     print(f">> forefront login {login}")
     print(f'page:{page}')
-
     await page.wait_for_load_state('domcontentloaded')
     print(f'domcontentloaded')
-
 
     button = 'button:text("Login")'
     if await is_on_page(page, button): # TODO : Test.

@@ -8,6 +8,7 @@ from typing import Dict, List, Optional, Union
 from playwright.async_api._context_manager import PlaywrightContextManager
 from playwright._impl._browser_context import BrowserContext
 from playwright._impl._browser_type import BrowserType
+from playwright.async_api import Page
 
 from web import strip_html
 from web import load_cookies
@@ -22,7 +23,7 @@ global _debug
 _debug = False
 # Global Windows
 global Windows
-Windows = [] # Window()
+Windows = {} # { Window.id : Window() }
 # Keyboard hack.
 def kbd(hack):
     dot = False
@@ -74,10 +75,6 @@ class Window(types.Message):
     output = ''
     _zen = False
 
-    browser: BrowserType = None
-    context: BrowserContext = None
-    pages = {}
-
     async def run(self, playwright: PlaywrightContextManager, headless=True, cookie_file=''): # runs a new browser context
         chrome = playwright.chromium
         firefox = playwright.firefox
@@ -97,17 +94,16 @@ class Window(types.Message):
             await self.body(self.text+f'\n{current_time()} {emojis.spider} sending a spider to {url}') # logging an action to web.body
             #TODO: may be a bad idea due to message size restriction. check text size of the message
             page = await self.context.new_page()
-            www = Window(self.bot, self.chat, self.user, pics.enso) # TODO: add keyboard to spider
-            await www.body('', f'{emojis.spider} ~spider')
-            self.pages[www.id] = page
+            spider = Window(self.bot, self.chat, self.user, pics.enso) # TODO: add keyboard to spider
+            await spider.body('', f'{emojis.spider} ~spider')
+            spider.page = page
             
             await page.set_viewport_size({'width': 800, 'height': 600})
             await page.goto(url)
-            return www
+            return spider
     
     def __init__(self, bot, chat, user, photo = None, keyboard = None, parse_mode = None):
         self.id: int = None
-
         self.loop = asyncio.get_event_loop()
 
         self.bot: AsyncTeleBot = bot
@@ -116,6 +112,10 @@ class Window(types.Message):
         self.message: types.Message = None
         self.parse_mode = parse_mode
 
+        self.browser: BrowserType = None
+        self.context: BrowserContext = None
+        self.page: Page = None
+
         self.photo: Optional[str] = photo
         self.pic: types.InputMediaPhoto = None
 
@@ -123,34 +123,30 @@ class Window(types.Message):
         self.create()
 
         global Windows
-        Windows.append(self)
+        if self.id is not None:
+            Windows[self.id] = self
 
     def name(self):
-        return self.message.from_user.full_name
+        if self.message is not None:
+            return self.message.from_user.full_name
+
     def first_name(self):
-        return self.message.from_user.first_name
+        if self.message is not None:
+            return self.message.from_user.first_name
+    
     def create(self):
         create_task = self.loop.create_task(self.async_create())
         self.loop.run_until_complete(asyncio.gather(create_task))
 
     async def destroy(self):
-        success = False
         global Windows, _debug
         if _debug:
-            print(f'{self.message.message_id}:destroy\nwindows:\n{Windows}')  
-        # Find and remove an instance from the list
-        
-        print(f'We are in destroy (self)... success is {success}')
-        for win in Windows:
-            if win.message.id == self.message.message_id:
-                print(f'Found the message... of self destruction? {win.message.id}')
-                destroy_task = self.loop.create_task(self.async_destroy())
-                self.loop.run_until_complete(asyncio.gather(destroy_task))
-                Windows.remove(win)
-                success = True
-                break
-        return success
-    
+            print(f'{self.id}:destroy\nwindows:\n{Windows}')
+        print(f'We are in destroy ({self.id})...')
+        destroy_task = self.loop.create_task(self.async_destroy())
+        self.loop.run_until_complete(asyncio.gather(destroy_task))
+        return Windows.pop(self.id)
+
     async def body(self, text=None, title=None, keyboard=None):
         output = ''
         
