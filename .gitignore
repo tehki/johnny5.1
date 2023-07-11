@@ -1,3 +1,5 @@
+cookies.json
+*.json
 # Ignore screenshots and media folders
 screenshots/
 screens/
@@ -11,8 +13,6 @@ env/
 # Ignore configuration files with secrets
 config.py
 config.txt
-# and cookies...
-cookies.json
 
 # Byte-compiled / optimized / DLL files
 __pycache__/
@@ -175,4 +175,3 @@ cython_debug/
 #  option (not recommended) you can uncomment the following to ignore the entire idea folder.
 #.idea/
 
-*.json
