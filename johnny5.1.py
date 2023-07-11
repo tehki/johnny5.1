@@ -139,6 +139,8 @@ async def send_to_forefront(message: types.Message) -> None:
 # /gpt4
 @johnny.message_handler(commands='gpt4')
 async def gpt4(message: types.Message) -> None:
+    await echo(message.text)
+    await delete(message)
     if forefront is not None:
         if await is_on_page(forefront.page, 'p:text("GPT-4")'):
             await forefront.page.click('p:text("GPT-4")')
@@ -146,6 +148,8 @@ async def gpt4(message: types.Message) -> None:
 # /gpt3
 @johnny.message_handler(commands='gpt3')
 async def gpt4(message: types.Message) -> None:
+    await echo(message.text)
+    await delete(message)
     if forefront is not None:
         if await is_on_page(forefront.page, 'p:text("GPT-3.5")'):
             await forefront.page.click('p:text("GPT-3.5")')
@@ -426,7 +430,7 @@ from config import gmail_login, gmail_password
 @johnny.message_handler(commands='web')
 async def web(message: types.Message) -> None:
     global _debug
-    headless = False
+    headless = True
 
     chat = message.chat
     user = message.from_user

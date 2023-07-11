@@ -40,7 +40,7 @@ async def scrns(message:types.Message): # returns path to screen.png file of the
     if message is not None:
         screen_path += f'#{message.chat.id}.{message.message_id}.png'
     return screen_path
-async def web_update(www):
+async def web_update(www): #TODO: Probably this needs to move to Window -> update()
             if www is not None:
                 if www.page is not None:
                     screen_path = await scrns(www.message)    
@@ -77,7 +77,7 @@ async def tradingview_login(page: Page, login, password):
     await page.get_by_label("Password").click()
     await page.get_by_label("Password").fill(password)
     await page.get_by_role("button", name="Sign in").click()
-async def extract_text(page: Page, selector = '*'):
+async def extract_text(page: Page, selector = '*'): 
         divs = await page.query_selector_all(selector)
         texts = [await div.text_content() for div in divs]
         print(f'>> extracting {selector} text:\n{texts}')
@@ -100,13 +100,21 @@ async def click_on(page: Page, text, button='button'):
          if button_text == text:
               await button.click()
               print(f'clicked {text}\n{button}')
+
+async def remove_html_tags(text):
+    # Remove all HTML tags except <code> and </code>
+    cleaned_text = re.sub(r'<(?!/?code\b)[^>]+>', '', text)
+    cleaned_text = re.sub('pythonCopy', '', cleaned_text)
+    return cleaned_text
+
 async def forefront_output(page: Page):
     print('>> forefront output')
     sel = 'div[class="post-markdown flex flex-col gap-4 text-th-primary-dark text-base "]'
     divs = await page.query_selector_all(sel)
-    texts = [await div.text_content() for div in divs]
-    print(texts)
-    return texts 
+    htmls = [await remove_html_tags(await div.inner_html()) for div in divs]
+    print(htmls)
+    return htmls
+
 async def forefront_input(page: Page, text, timeout = 200000):
     print('>> forefront input')
     sel = '[contenteditable="true"]'
