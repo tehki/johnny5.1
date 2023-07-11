@@ -116,6 +116,10 @@ async def forefront_input(page: Page, text, timeout = 200000):
         await page.wait_for_load_state('load', timeout=timeout) # ["commit", "domcontentloaded", "load", "networkidle"]
         print(f'> {text}')
         print(f'load')
+
+async def is_on_page(page: Page, selector: str):
+    return await page.query_selector(selector)
+
 async def forefront_login(page: Page, login, password, timeout = 200000):
     print(f">> forefront login {login}")
     print(f'page:{page}')
@@ -123,9 +127,9 @@ async def forefront_login(page: Page, login, password, timeout = 200000):
     await page.wait_for_load_state('domcontentloaded')
     print(f'domcontentloaded')
 
+
     button = 'button:text("Login")'
-    b = await page.query_selector(button)
-    if b is not None:
+    if await is_on_page(page, button): # TODO : Test.
         await page.click(button)
         await page.wait_for_load_state('networkidle', timeout=timeout) # ["commit", "domcontentloaded", "load", "networkidle"]
         await click_on(page, 'Continue with Google', 'button')
@@ -147,6 +151,9 @@ async def forefront_login(page: Page, login, password, timeout = 200000):
         await click_on(page, 'Next', 'button')
         await page.wait_for_load_state('commit', timeout=timeout) # ["commit", "domcontentloaded", "load", "networkidle"]
 
-    await click_on(page, 'Continue on Free', 'button')
+    button = 'button:text("Continue on Free")'
+    if await is_on_page(page, button): # TODO : Test.
+        await click_on(page, 'Continue on Free', 'button')
+        
     await page.wait_for_load_state('networkidle', timeout=timeout) # ["commit", "domcontentloaded", "load", "networkidle"]
     return True
