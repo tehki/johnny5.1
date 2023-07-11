@@ -12,6 +12,9 @@ env/
 config.py
 config.txt
 
+# and cookies...
+cookies.json
+
 # Byte-compiled / optimized / DLL files
 __pycache__/
 *.py[cod]
