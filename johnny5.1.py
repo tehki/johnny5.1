@@ -465,7 +465,7 @@ from config import gmail_login, gmail_password
 @johnny.message_handler(commands='web')
 async def web(message: types.Message) -> None:
     global _debug
-    headless = True
+    headless = False
 
     chat = message.chat
     user = message.from_user
@@ -488,7 +488,7 @@ async def web(message: types.Message) -> None:
             await www.update()
             print(f'page.url:{page.url}')
 
-            if page.url == 'https://chat.forefront.ai/':    
+            if 'forefront.ai' in page.url:
                 if await forefront_login(page, gmail_login, gmail_password) is True:
                     await web.body(web.text+f"\n{current_time()} Nice. {emojis.spider} got into {page.url}")
                     await page.wait_for_load_state("networkidle")

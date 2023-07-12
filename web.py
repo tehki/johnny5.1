@@ -1,5 +1,6 @@
 import io
 import re
+import os
 import json
 import emojis
 from telebot import types
@@ -11,10 +12,12 @@ from utils import current_time
             <a href = 'http://www.example.com/'> inline URL </a>
             <a href = 'tg://user?id=123456789'> inline mention of a user</a>
 """
+
 async def extract_urls(text):
     pattern = r'(https?://\S+)'
     urls = re.findall(pattern, text)
     return urls
+
 async def web_update(www): #TODO: Probably this needs to move to Window -> update()
             if www is not None:
                 if www.page is not None:
@@ -22,17 +25,19 @@ async def web_update(www): #TODO: Probably this needs to move to Window -> updat
                     await www.page.screenshot(path=screen_path)
                     await www.head(screen_path)
                     await www.body(f'{current_time()} {screen_path}', f'{emojis.spider} ~spider')
+
 async def save_cookies(context: BrowserContext, cookie_file = 'cookies.json'): # TODO: Consider multiple cookies files
     cookies = await context.cookies()
     with open(cookie_file, 'w') as file:
         json.dump(cookies, file)
-
     return cookies
-async def load_cookies(context: BrowserContext, cookie_file = 'cookies.json'):
-    with open(cookie_file, 'r') as file:
-        cookies = json.load(file)
 
+async def load_cookies(context: BrowserContext, cookie_file = 'cookies.json'):
+    if os.path.exists(cookie_file):
+        with open(cookie_file, 'r') as file:
+            cookies = json.load(file)
     await context.add_cookies(cookies)
+
 async def send_html(page: Page, message: types.Message, bot = None): # returns a file # TODO: do we need a message or we can send to self?
     if page is not None:
         with io.BytesIO() as file:
@@ -42,6 +47,7 @@ async def send_html(page: Page, message: types.Message, bot = None): # returns a
             if bot is not None:
                  await bot.send_document(message.chat.id, file, caption=f'{page.url}', visible_file_name='sources.html') # TODO: make a window with modifying document?
             return file # TODO: can a self contain multiple documents and send them in one window?
+        
 async def tradingview_login(page: Page, login, password):
     await page.goto("https://www.tradingview.com/")
     await page.get_by_role("button", name="Open user menu").click()
@@ -91,6 +97,7 @@ async def print_all(page: Page, objects = '*'):
 
 async def is_on_page(page: Page, selector: str):
     return await page.query_selector_all(selector)
+
 async def click_on(page: Page, text, button='button'):
     buttons = await page.query_selector_all(button)
     for button in buttons:
@@ -105,6 +112,7 @@ async def forefront_format(text):
     # Remove 'pythonCopy'
     cleaned_text = re.sub('pythonCopy', '', cleaned_text)
     return cleaned_text
+
 async def forefront_output(page: Page):
     print('>> forefront output')
     sel = 'div[class="post-markdown flex flex-col gap-4 text-th-primary-dark text-base "]'
@@ -112,6 +120,7 @@ async def forefront_output(page: Page):
     htmls = [await forefront_format(await div.inner_html()) for div in divs]
     print(htmls)
     return htmls
+
 async def forefront_input(page: Page, text, timeout = 200000):
     print('>> forefront input')
     sel = '[contenteditable="true"]'
@@ -123,7 +132,10 @@ async def forefront_input(page: Page, text, timeout = 200000):
         await page.wait_for_load_state('load', timeout=timeout) # ["commit", "domcontentloaded", "load", "networkidle"]
         print(f'> {text}')
         print(f'load')
+
 async def forefront_login(page: Page, login, password, timeout = 200000):
+    print('hello?')
+
     print(f">> forefront login {login}")
     print(f'page:{page}')
     await page.wait_for_load_state('domcontentloaded')
