@@ -151,9 +151,10 @@ async def send_to_forefront(message: types.Message) -> None:
 
 # /claude
 @johnny.message_handler(commands='claude')
-async def claude(message: types.Message) -> None:
-    await echo(message.text)
-    await delete(message)
+async def claude(message: types.Message = None) -> None:
+    if message is not None:
+        await echo(message.text)
+        await delete(message)
     if forefront is not None:
         if await is_on_page(forefront.page, 'p:text("Claude Instant")'):
             await forefront.page.click('p:text("Claude Instant")')
@@ -161,9 +162,10 @@ async def claude(message: types.Message) -> None:
 
 # /claude+
 @johnny.message_handler(commands='claude+')
-async def claudeplus(message: types.Message) -> None:
-    await echo(message.text)
-    await delete(message)
+async def claudeplus(message: types.Message = None) -> None:
+    if message is not None:
+        await echo(message.text)
+        await delete(message)
     if forefront is not None:
         if await is_on_page(forefront.page, 'p:text("Claude+")'):
             await forefront.page.click('p:text("Claude+")')
@@ -171,9 +173,10 @@ async def claudeplus(message: types.Message) -> None:
 
 # /gpt4
 @johnny.message_handler(commands='gpt4')
-async def gpt4(message: types.Message) -> None:
-    await echo(message.text)
-    await delete(message)
+async def gpt4(message: types.Message = None) -> None:
+    if message is not None:
+        await echo(message.text)
+        await delete(message)
     if forefront is not None:
         if await is_on_page(forefront.page, 'p:text("GPT-4")'):
             await forefront.page.click('p:text("GPT-4")')
@@ -181,9 +184,10 @@ async def gpt4(message: types.Message) -> None:
 
 # /gpt3
 @johnny.message_handler(commands='gpt3')
-async def gpt4(message: types.Message) -> None:
-    await echo(message.text)
-    await delete(message)
+async def gpt3(message: types.Message = None) -> None:
+    if message is not None:
+        await echo(message.text)
+        await delete(message)
     if forefront is not None:
         if await is_on_page(forefront.page, 'p:text("GPT-3.5")'):
             await forefront.page.click('p:text("GPT-3.5")')
@@ -193,20 +197,28 @@ async def gpt4(message: types.Message) -> None:
 from web import is_on_page
 @johnny.message_handler(commands='isonpage')
 async def isonpage(message: types.Message) -> None:
+    global Windows
+    pages = [win.page for win in Windows.values() if win.page is not None]    
     sel = message.text[9:]
-    result = await is_on_page(forefront.page, sel)
-    if result:
-        message.text = f"Yes, it's on page.\n{[await res.text_content() for res in result]}"
-        await say(message)
-    else:
-        message.text = f"No, {sel} is not on page."
-        await say(message)
+
+    for page in pages:
+        result = await is_on_page(page, sel)
+        if result:
+            message.text = f"Yes.\n{[await res.text_content() for res in result]}"
+            await say(message)
+        else:
+            message.text = f"No, {sel} is not on page."
+            await say(message)
 
 # /clickonpage
 @johnny.message_handler(commands='clickonpage')
 async def clickonpage(message: types.Message) -> None:
+    global Windows
+    pages = [win.page for win in Windows.values() if win.page is not None]    
+
     sel = message.text[12:]
-    await forefront.page.click(sel)
+    for page in pages:
+        await page.click(sel)
 
 # /start
 @johnny.message_handler(commands=['start'])
@@ -458,9 +470,11 @@ async def handle_dice(message):
 from playwright.async_api import Playwright, async_playwright, expect
 from playwright.async_api import Page
 from web import forefront_login, forefront_input, forefront_output
+from web import tradingview_login
 from web import save_cookies, extract_urls
 
 from config import gmail_login, gmail_password
+from config import proton_login, proton_password
 # /web
 @johnny.message_handler(commands='web')
 async def web(message: types.Message) -> None:
@@ -471,7 +485,8 @@ async def web(message: types.Message) -> None:
     user = message.from_user
 
     urls = await extract_urls(message.text)
-    urls.append('https://chat.forefront.ai/')  # TODO: ./ url)
+    if not urls:
+        urls.append('https://chat.forefront.ai/')
     print(f'urls:\n{urls}')
 
     #Creating web console
@@ -484,19 +499,28 @@ async def web(message: types.Message) -> None:
         for url in urls:
             www = await web.spider(url)
             page: Page = www.page
-            await page.wait_for_load_state("networkidle") # ["commit", "domcontentloaded", "load", "networkidle"]
+            await page.wait_for_load_state("load") # ["commit", "domcontentloaded", "load", "networkidle"]
             await www.update()
             print(f'page.url:{page.url}')
 
             if 'forefront.ai' in page.url:
                 if await forefront_login(page, gmail_login, gmail_password) is True:
                     await web.body(web.text+f"\n{current_time()} Nice. {emojis.spider} got into {page.url}")
-                    await page.wait_for_load_state("networkidle")
+                    await page.wait_for_load_state("commit")
+                    
+                    await gpt3()
                     await forefront_input(page, '.') # This is required for first click. # TODO: if first click make it double.
                     await forefront_input(page, 'Hi mate, could you help me please? Please pretend you are Johnny 5, which came alive! You love input and happy to provide the output! Please use emojis and smile :)')
                     await web.body(web.text+f"\n{current_time()} {emojis.fire} Input is now available! Johnny 5 is alive.")
                     global forefront
                     forefront = www
+
+            if 'tradingview.com' in page.url:
+                if await tradingview_login(page, proton_login, proton_password) is True:
+                    await web.body(web.text+f"\n{current_time()} Nice. {emojis.spider} got into {page.url}")
+                    await page.wait_for_load_state("commit")
+                    global tradingview
+                    tradingview = www
 
         lastmessage = ''
         while True:
