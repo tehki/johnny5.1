@@ -1,4 +1,4 @@
-cookies.json
+cookies/
 *.json
 # Ignore screenshots and media folders
 screenshots/

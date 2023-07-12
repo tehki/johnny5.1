@@ -480,7 +480,7 @@ from config import proton_login, proton_password
 @johnny.message_handler(commands='web')
 async def web(message: types.Message) -> None:
     global _debug
-    headless = True
+    headless = False
 
     chat = message.chat
     user = message.from_user

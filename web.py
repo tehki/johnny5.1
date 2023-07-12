@@ -21,14 +21,15 @@ async def extract_urls(text):
 
 async def save_cookies(context: BrowserContext, cookie_file = 'cookies.json'): # TODO: Consider multiple cookies files
     cookies = await context.cookies()
-    with open(cookie_file, 'w') as file:
+    with open(f'./cookies/{cookie_file}', 'w') as file:
         json.dump(cookies, file)
     return cookies
+
 async def load_cookies(context: BrowserContext, cookie_file = 'cookies.json'):
-    if os.path.exists(cookie_file):
-        with open(cookie_file, 'r') as file:
+    if os.path.exists(f'./cookies/{cookie_file}'):
+        with open(f'./cookies/{cookie_file}', 'r') as file:
             cookies = json.load(file)
-    await context.add_cookies(cookies)
+        await context.add_cookies(cookies)
 
 async def send_html(page: Page, message: types.Message, bot = None): # returns a file # TODO: do we need a message or we can send to self?
     if page is not None:
@@ -152,33 +153,36 @@ async def forefront_input(page: Page, text, timeout = 200000):
 async def forefront_login(page: Page, login, password, timeout = 200000):
     print(f">> forefront login {login}")
     print(f'page:{page}')
-    await page.wait_for_load_state('domcontentloaded')
-    print(f'domcontentloaded')
+    await page.wait_for_load_state('networkidle')
+    print(f'networkidle')
 
     button = 'button:text("Login")'
     if await is_on_page(page, button): # TODO : Test.
         await page.click(button)
         await page.wait_for_load_state('networkidle', timeout=timeout) # ["commit", "domcontentloaded", "load", "networkidle"]
-        await click_on(page, 'Continue with Google', 'button')
+
+    span = 'span:text("Continue with Google")'
+    if await is_on_page(page, span):
+        await page.click(span)
         await page.wait_for_load_state('networkidle', timeout=timeout) # ["commit", "domcontentloaded", "load", "networkidle"]
-        google_email = 'input[type="email"]'
+
+    google_email = 'input[type="email"]'
+    if await is_on_page(page, google_email):    
         await page.fill(google_email, login)
         await click_on(page, 'Next', 'button')
         await page.wait_for_load_state('commit', timeout=timeout) # ["commit", "domcontentloaded", "load", "networkidle"]
             
-        # Find the element with the <samp> tag
-        samp = await page.query_selector('text leaf')
-        if samp is not None:
-            print(f'samp:{await samp.text_content()}')
+    # Find the element with the <samp> tag
+    samp = await page.query_selector('text leaf')
+    if samp is not None:
+        print(f'samp:{await samp.text_content()}')
 
-        google_password = 'input[type="password"]'
+    google_password = 'input[type="password"]'
+    if await is_on_page(page, google_password):
         await page.fill(google_password, password)
-        print(f'filled in {google_password}')
-
         await click_on(page, 'Next', 'button')
-        await page.wait_for_load_state('commit', timeout=timeout) # ["commit", "domcontentloaded", "load", "networkidle"]
-        
-    await page.wait_for_load_state('networkidle', timeout=timeout) # ["commit", "domcontentloaded", "load", "networkidle"]
+        await page.wait_for_load_state('networkidle', timeout=timeout) # ["commit", "domcontentloaded", "load", "networkidle"]
+    
     await forefront_continue(page)
 
     return True
