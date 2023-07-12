@@ -211,12 +211,12 @@ class Window(types.Message):
             if _debug:
                 print(f'{self.message.message_id}:async_update:output({len(self.output)}):\n{self.output}')
             if self.photo is not None:
-                if strip_html(self.message.caption) != strip_html(self.output):
+                if await strip_html(self.message.caption) != await strip_html(self.output):
                     keyboard = None if self._zen else self.keyboard
                     # if _debug: print(f'UPDATING:\n{self.output}')
                     self.message = await self.bot.edit_message_caption(self.output, self.chat.id, self.message.id, parse_mode=self.parse_mode, reply_markup=keyboard)
             elif self.output != '':
-                if strip_html(self.message.text) != strip_html(self.output):
+                if await strip_html(self.message.text) != await strip_html(self.output):
                     keyboard = None if self._zen else self.keyboard
                     # if _debug: print(f'UPDATING:\n{self.output}')
                     self.message = await self.bot.edit_message_text(self.output, self.chat.id, self.message.message_id, parse_mode=self.parse_mode, reply_markup=keyboard)

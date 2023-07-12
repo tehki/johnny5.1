@@ -95,7 +95,8 @@ async def handle_callback(call):
 
     if call.data == '🕸️':
         await web (call.message)
-        await system.body('/web 🕸️', keyboard=keyboard(arigato=True))
+        if system is not None:
+            await system.body('/web 🕸️', keyboard=keyboard(arigato=True))
 
     if call.data == ('\/'):
         await zen(None)
@@ -469,7 +470,7 @@ async def handle_dice(message):
 ### WEB PART ###
 from playwright.async_api import Playwright, async_playwright, expect
 from playwright.async_api import Page
-from web import forefront_login, forefront_input, forefront_output
+from web import forefront_login, forefront_input, forefront_output, forefront_disable_autosave
 from web import tradingview_login
 from web import save_cookies, extract_urls
 
@@ -479,11 +480,11 @@ from config import proton_login, proton_password
 @johnny.message_handler(commands='web')
 async def web(message: types.Message) -> None:
     global _debug
-    headless = False
+    headless = True
 
     chat = message.chat
     user = message.from_user
-
+    
     urls = await extract_urls(message.text)
     if not urls:
         urls.append('https://chat.forefront.ai/')
@@ -495,7 +496,8 @@ async def web(message: types.Message) -> None:
 
     async with async_playwright() as playwright:
         await web.run(playwright, headless, 'cookies.json')
-
+        tasks = []
+ 
         for url in urls:
             www = await web.spider(url)
             page: Page = www.page
@@ -505,15 +507,19 @@ async def web(message: types.Message) -> None:
 
             if 'forefront.ai' in page.url:
                 if await forefront_login(page, gmail_login, gmail_password) is True:
+                    global forefront
+                    forefront = www
+                    
                     await web.body(web.text+f"\n{current_time()} Nice. {emojis.spider} got into {page.url}")
                     await page.wait_for_load_state("commit")
-                    
+
                     await gpt3()
+                    await forefront_disable_autosave(page)
                     await forefront_input(page, '.') # This is required for first click. # TODO: if first click make it double.
                     await forefront_input(page, 'Hi mate, could you help me please? Please pretend you are Johnny 5, which came alive! You love input and happy to provide the output! Please use emojis and smile :)')
                     await web.body(web.text+f"\n{current_time()} {emojis.fire} Input is now available! Johnny 5 is alive.")
-                    global forefront
-                    forefront = www
+                    
+                    tasks.append(asyncio.ensure_future(forefront_ai(web, www, message)))
 
             if 'tradingview.com' in page.url:
                 if await tradingview_login(page, proton_login, proton_password) is True:
@@ -522,30 +528,55 @@ async def web(message: types.Message) -> None:
                     global tradingview
                     tradingview = www
 
-        lastmessage = ''
-        while True:
-            await save_cookies(web.context, 'cookies.json')
+            tasks.append(asyncio.ensure_future(www_ai(www, process_delay)))
+        tasks.append(asyncio.ensure_future(web_ai(web, process_delay)))
+        web.loop.run_until_complete(asyncio.gather(*tasks))
 
-            if forefront is not None:
-                output = await forefront_output(forefront.page)
-                if len(output) > 0:
-                    message.text = output[-1]
-                    if message.text != lastmessage:
-                        if message.text.find(lastmessage) == 0:
-                            message.text = message.text.replace(lastmessage, '')
-                        await say(message)
-                        lastmessage = output[-1]
-                        global Windows # Refreshing spiders
-                        spiders = [wnd for wnd in Windows.values() if wnd.title == emojis.spider]
-                        for wnd in spiders:
-                            await wnd.body(title=emojis.web)
-                            spider = Window(wnd.bot, wnd.chat, wnd.user)
-                            await spider.body(output[-1], emojis.spider)
-                await forefront.page.mouse.wheel(0, 100)
+async def web_ai(web: Window, delay = 25):
+    global _debug
+    while True:
+        if _debug: print(f'web_ai(): {web.id}')
+        if web is None:
+            break
+        await web.update()
+        await save_cookies(web.context, f'cookies.json')
+        await asyncio.sleep(delay) 
 
-            await update()
-            await asyncio.sleep(process_delay)
+async def www_ai(www: Window, delay = 25):
+    global _debug
+    while True:
+        if _debug: print(f'www_ai(): {www.page.url}')
+        if www is None:
+            break
+        if www.page is not None:
+            await www.body(f'{current_time()} {await www.screen()}', f'{emojis.spider} ~spider')
+        await asyncio.sleep(delay)
 
+async def forefront_ai(web: Window, www: Window, message: types.Message, delay = 1):
+    global Windows, _debug
+    lastmessage = ''
+    while True:
+        if _debug: print(f'forefront_ai()')
+        if web is None or www is None:
+            break
+        if www is not None:
+            output = await forefront_output(www.page)
+            if len(output) > 0:
+                message.text = output[-1]
+                if message.text != lastmessage:
+                    if message.text.find(lastmessage) == 0:
+                        message.text = message.text.replace(lastmessage, '')
+                    await say(message)
+                    spiders = [wnd for wnd in Windows.values() if wnd.title == emojis.spider]
+                    for wnd in spiders:
+                        await wnd.body(title=emojis.web)
+                        spider = Window(wnd.bot, wnd.chat, wnd.user)
+                        await spider.body(message.text, emojis.spider)
+                    lastmessage = output[-1]
+            await www.page.mouse.wheel(0, 100)
+        await asyncio.sleep(delay)
+
+#TODO: Message on delete
         # ---------------------
         #await context.close()
         #await browser.close()

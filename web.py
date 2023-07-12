@@ -14,24 +14,16 @@ from utils import current_time
 """
 
 async def extract_urls(text):
-    pattern = r'(https?://\S+)'
-    urls = re.findall(pattern, text)
-    return urls
-
-async def web_update(www): #TODO: Probably this needs to move to Window -> update()
-            if www is not None:
-                if www.page is not None:
-                    screen_path = await scrns(www.message)    
-                    await www.page.screenshot(path=screen_path)
-                    await www.head(screen_path)
-                    await www.body(f'{current_time()} {screen_path}', f'{emojis.spider} ~spider')
+    if text is not None:   
+        pattern = r'(https?://\S+)'
+        urls = re.findall(pattern, text)
+        return urls
 
 async def save_cookies(context: BrowserContext, cookie_file = 'cookies.json'): # TODO: Consider multiple cookies files
     cookies = await context.cookies()
     with open(cookie_file, 'w') as file:
         json.dump(cookies, file)
     return cookies
-
 async def load_cookies(context: BrowserContext, cookie_file = 'cookies.json'):
     if os.path.exists(cookie_file):
         with open(cookie_file, 'r') as file:
@@ -47,29 +39,7 @@ async def send_html(page: Page, message: types.Message, bot = None): # returns a
             if bot is not None:
                  await bot.send_document(message.chat.id, file, caption=f'{page.url}', visible_file_name='sources.html') # TODO: make a window with modifying document?
             return file # TODO: can a self contain multiple documents and send them in one window?
-        
-async def tradingview_login(page: Page, login, password):
-    print('tradingview login')
-    if await is_on_page(page, 'div[class^="topLeftButton"]'):
-         await page.click('div[class^="topLeftButton"]')
-    if await is_on_page(page, 'span:text("Sign in")'):
-         await page.click('span:text("Sign in")')
-    await page.wait_for_load_state('load') # ["commit", "domcontentloaded", "load", "networkidle"]
-    print('tradingview login:load')
-
-    if await is_on_page(page, 'button[name="Email"]'):
-         print('tradingview login:button[name="Email"]')
-         await page.click('button[name="Email"]')
-    await page.wait_for_load_state('load') # ["commit", "domcontentloaded", "load", "networkidle"]
-    if await is_on_page(page, 'input[id="id_username"]'):
-         await page.fill('input[id="id_username"]', login)
-    if await is_on_page(page, 'input[id="id_password"]'):
-         await page.fill('input[id="id_password"]', password)
-    if await is_on_page(page, 'span:text("Sign in")'):
-         await page.click('span:text("Sign in")')
-    return True
-
-def strip_html(text):
+async def strip_html(text):
     if text is not None and text != '':
         output = text
         output = re.sub(r'<b>', '', output)
@@ -94,7 +64,6 @@ async def extract_text(page: Page, selector = '*'):
         divs = await page.query_selector_all(selector)
         texts = [await div.text_content() for div in divs]
         print(f'>> extracting {selector} text:\n{texts}')
-
 async def print_all(page: Page, objects = '*'):
     # Get a list of all available locators on the page
     # print(f'{page}')
@@ -108,7 +77,6 @@ async def print_all(page: Page, objects = '*'):
 
 async def is_on_page(page: Page, selector: str):
     return await page.query_selector_all(selector)
-
 async def click_on(page: Page, text, button='button'):
     buttons = await page.query_selector_all(button)
     for button in buttons:
@@ -117,28 +85,57 @@ async def click_on(page: Page, text, button='button'):
               await button.click()
               print(f'clicked {text}\n{button}')
 
+async def tradingview_login(page: Page, login, password):
+    print('tradingview login')
+    await page.wait_for_load_state('load') # ["commit", "domcontentloaded", "load", "networkidle"]
+
+    if await is_on_page(page, 'div[class^="topLeftButton"]'):
+         await page.click('div[class^="topLeftButton"]')
+    if await is_on_page(page, 'span:text("Sign in")'):
+         await page.click('span:text("Sign in")')
+         
+    await page.wait_for_load_state('load') # ["commit", "domcontentloaded", "load", "networkidle"]
+    if await is_on_page(page, 'span:text("Email")'):
+         await page.click('span:text("Email")')
+         
+    await page.wait_for_load_state('load') # ["commit", "domcontentloaded", "load", "networkidle"]
+    if await is_on_page(page, 'input[id="id_username"]'):
+         await page.fill('input[id="id_username"]', login)
+    if await is_on_page(page, 'input[id="id_password"]'):
+         await page.fill('input[id="id_password"]', password)
+    if await is_on_page(page, 'span:text("Sign in")'):
+         await page.click('span:text("Sign in")')
+    return True
+
 async def forefront_format(text):
     # Remove all HTML tags except <code> and </code>
     cleaned_text = re.sub(r'<(?!/?code\b)[^>]+>', '', text)
     # Remove 'pythonCopy'
     cleaned_text = re.sub('pythonCopy', '\n', cleaned_text)
     return cleaned_text
-
+async def forefront_disable_autosave(page: Page):
+    print(f">> forefront disable autosave")
+    button = 'button:text("Manual")'
+    if await is_on_page(page, button):
+        await page.click(button)
+async def forefront_enable_autosave(page: Page):
+    print(f">> forefront enable autosave")
+    button = 'button:text("Auto")'
+    if await is_on_page(page, button):
+        await page.click(button)
 async def forefront_continue(page: Page):
     button = 'button:text("Continue on Free")'
     if await is_on_page(page, button):
-        await click_on(page, 'Continue on Free', 'button')
-
+        await page.click(button)
 async def forefront_output(page: Page):
-    print('>> forefront output')
+    # print('>> forefront output')
     await forefront_continue(page)
 
     sel = 'div[class="post-markdown flex flex-col gap-4 text-th-primary-dark text-base "]'
     divs = await page.query_selector_all(sel)
     htmls = [await forefront_format(await div.inner_html()) for div in divs]
-    print(htmls)
+    # print(htmls)
     return htmls
-
 async def forefront_input(page: Page, text, timeout = 200000):
     print('>> forefront input')
     await forefront_continue(page)
@@ -152,7 +149,6 @@ async def forefront_input(page: Page, text, timeout = 200000):
         await page.wait_for_load_state('load', timeout=timeout) # ["commit", "domcontentloaded", "load", "networkidle"]
         print(f'> {text}')
         print(f'load')
-
 async def forefront_login(page: Page, login, password, timeout = 200000):
     print(f">> forefront login {login}")
     print(f'page:{page}')
@@ -184,4 +180,5 @@ async def forefront_login(page: Page, login, password, timeout = 200000):
         
     await page.wait_for_load_state('networkidle', timeout=timeout) # ["commit", "domcontentloaded", "load", "networkidle"]
     await forefront_continue(page)
+
     return True
