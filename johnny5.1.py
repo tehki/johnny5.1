@@ -18,11 +18,12 @@ _debug = False
 # I'm here.
 # # hiding from pepe. 
 # . /\ \/ . / . o/ . /\ ./ ? . #
-global Chats, Users, Messages, Allowed
+global Chats, Users, Messages, Allowed, Requests
 Chats = [] # types.Chat
 Users = [] # types.User
 Messages = [] # types.Message
 Allowed = [] # Chats where bot is allowed to talk and delete messages
+Requests = {} #
 
 global Windows
 from window import Windows
@@ -124,13 +125,32 @@ async def handle_callback(call):
 async def say(message):
     global _debug
     if _debug:
-        print(f'{message}')
+        print(f'/say:\n{message}')
 
     if message.text.startswith('/say '):
         message.text = message.text[5:]
 
     kbdd = kbd(message.text)
     await johnny.send_message(message.chat.id, message.text, reply_markup=kbdd)
+
+# /request
+@johnny.message_handler(commands=['request'])
+async def request(message):
+    global _debug, Requests
+    if _debug:
+        print(f'/request:\n{message}')
+
+    if message.text.startswith('/request '):
+        message.text = message.text[9:]
+
+    force_reply = types.ForceReply()
+    await johnny.send_message(message.chat.id, message.text, reply_markup=force_reply)
+
+    Requests[message.chat.id] = ''
+    while Requests[message.chat.id] == '':
+        await asyncio.sleep(1)
+
+    return Requests[message.chat.id]
 
 # /johnny
 @johnny.message_handler(commands='johnny')
@@ -293,6 +313,12 @@ async def listen(message):
         else:
             print(f"I'm not allowed at {chat.id}")
             return
+        
+    global Requests
+    if chat.id in Requests:
+        if Requests[chat.id] == '':
+            Requests[chat.id] = message.text
+            print(f'Request {chat.id} is filled with {message.text}')
 
     await echo(message.text) # console echoes input
     await delete(message) # deletes the message
@@ -470,17 +496,16 @@ async def handle_dice(message):
 ### WEB PART ###
 from playwright.async_api import Playwright, async_playwright, expect
 from playwright.async_api import Page
-from web import forefront_login, forefront_input, forefront_output, forefront_disable_autosave
+from web import forefront_login, forefront_input, forefront_output, forefront_disable_autosave, forefront_validate, forefront_continue
 from web import tradingview_login
-from web import save_cookies, extract_urls
+from web import save_cookies, extract_urls, needs_validation
+from config import johnny_proton_login, johnny_proton_password
 
-from config import gmail_login, gmail_password
-from config import proton_login, proton_password
 # /web
 @johnny.message_handler(commands='web')
 async def web(message: types.Message) -> None:
     global _debug
-    headless = False
+    headless = True
 
     chat = message.chat
     user = message.from_user
@@ -490,46 +515,52 @@ async def web(message: types.Message) -> None:
         urls.append('https://chat.forefront.ai/')
     print(f'urls:\n{urls}')
 
-    #Creating web console
+    # Creating web console
     web = await create_console(johnny, chat, user)
     await web.body(f'Entering {emojis.web} ~web')
+    tasks = []
 
     async with async_playwright() as playwright:
         await web.run(playwright, headless, 'cookies.json')
-        tasks = []
- 
         for url in urls:
             www = await web.spider(url)
+
             page: Page = www.page
             await page.wait_for_load_state("load") # ["commit", "domcontentloaded", "load", "networkidle"]
-            await www.update()
+
             print(f'page.url:{page.url}')
-
             if 'forefront.ai' in page.url:
-                if await forefront_login(page, gmail_login, gmail_password) is True:
-                    global forefront
-                    forefront = www
-                    
-                    await web.body(web.text+f"\n{current_time()} Nice. {emojis.spider} got into {page.url}")
-                    await page.wait_for_load_state("commit")
-
-                    await gpt3()
-                    await forefront_disable_autosave(page)
-                    await forefront_input(page, '.') # This is required for first click. # TODO: if first click make it double.
-                    await forefront_input(page, 'Hi mate, could you help me please? Please pretend you are Johnny 5, which came alive! You love input and happy to provide the output! Please use emojis and smile :)')
-                    await web.body(web.text+f"\n{current_time()} {emojis.fire} Input is now available! Johnny 5 is alive.")
-                    
-                    tasks.append(asyncio.ensure_future(forefront_ai(web, www, message)))
-
+                if await forefront_login(page, johnny_proton_login, johnny_proton_password) is False:
+                    if await needs_validation(page):
+                        await www.screen()
+                        message.text = f'Please reply with validation code at your email {johnny_proton_login}'
+                        code = await request(message)
+                        if code is not None:
+                            if await forefront_validate(page, code) is False:
+                                print('Failed to login to forefront')
+                                continue
+                print('Logged in to forefront')
+                await page.wait_for_load_state("networkidle")
+                await forefront_continue(page)
+                global forefront
+                forefront = www
+                await web.body(web.text+f"\n{current_time()} Nice. {emojis.spider} got into {page.url}")
+                await gpt3()
+                await forefront_disable_autosave(page)
+                await forefront_input(page, '.') # This is required for first click. # TODO: if first click make it double.
+                await forefront_input(page, 'Hi mate, could you help me please? Please pretend you are Johnny 5, which came alive! You love input and happy to provide the output! Please use emojis and smile :)')
+                await web.body(web.text+f"\n{current_time()} {emojis.fire} Input is now available! Johnny 5 is alive.")
+                tasks.append(asyncio.ensure_future(forefront_ai(web, www, message)))
             if 'tradingview.com' in page.url:
                 if await tradingview_login(page, proton_login, proton_password) is True:
                     await web.body(web.text+f"\n{current_time()} Nice. {emojis.spider} got into {page.url}")
                     await page.wait_for_load_state("commit")
                     global tradingview
                     tradingview = www
-
+            
             tasks.append(asyncio.ensure_future(www_ai(www, process_delay)))
         tasks.append(asyncio.ensure_future(web_ai(web, process_delay)))
+
         web.loop.run_until_complete(asyncio.gather(*tasks))
 
 async def web_ai(web: Window, delay = 25):
@@ -574,6 +605,7 @@ async def forefront_ai(web: Window, www: Window, message: types.Message, delay =
                         await spider.body(message.text, emojis.spider)
                     lastmessage = output[-1]
             await www.page.mouse.wheel(0, 100)
+            
         await asyncio.sleep(delay)
 
 #TODO: Message on delete
