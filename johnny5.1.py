@@ -552,7 +552,7 @@ async def web(message: types.Message) -> None:
                 await web.body(web.text+f"\n{current_time()} {emojis.fire} Input is now available! Johnny 5 is alive.")
                 tasks.append(asyncio.ensure_future(forefront_ai(web, www, message)))
             if 'tradingview.com' in page.url:
-                if await tradingview_login(page, proton_login, proton_password) is True:
+                if await tradingview_login(page, johnny_proton_login, johnny_proton_password) is True:
                     await web.body(web.text+f"\n{current_time()} Nice. {emojis.spider} got into {page.url}")
                     await page.wait_for_load_state("commit")
                     global tradingview
