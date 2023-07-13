@@ -2,7 +2,6 @@ import io
 import re
 import os
 import json
-import asyncio
 from telebot import types
 from playwright.async_api import Page
 from playwright.async_api import BrowserContext
@@ -94,10 +93,14 @@ async def tradingview_login(page: Page, login, password):
     print('tradingview login')
     await page.wait_for_load_state('load') # ["commit", "domcontentloaded", "load", "networkidle"]
 
-    if await is_on_page(page, 'div[class^="topLeftButton"]'):
-         await page.click('div[class^="topLeftButton"]')
+    topLeftMenu = 'div[class^="topLeftButton"]'
+    if await is_on_page(page, topLeftMenu):
+         await page.click(topLeftMenu)
+
     if await is_on_page(page, 'span:text("Sign in")'):
          await page.click('span:text("Sign in")')
+    else:
+        await page.click(topLeftMenu)
          
     await page.wait_for_load_state('load') # ["commit", "domcontentloaded", "load", "networkidle"]
     if await is_on_page(page, 'span:text("Email")'):

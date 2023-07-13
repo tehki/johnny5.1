@@ -551,6 +551,7 @@ async def web(message: types.Message) -> None:
                 await forefront_input(page, 'Hi mate, could you help me please? Please pretend you are Johnny 5, which came alive! You love input and happy to provide the output! Please use emojis and smile :)')
                 await web.body(web.text+f"\n{current_time()} {emojis.fire} Input is now available! Johnny 5 is alive.")
                 tasks.append(asyncio.ensure_future(forefront_ai(web, www, message)))
+
             if 'tradingview.com' in page.url:
                 if await tradingview_login(page, johnny_proton_login, johnny_proton_password) is True:
                     await web.body(web.text+f"\n{current_time()} Nice. {emojis.spider} got into {page.url}")
