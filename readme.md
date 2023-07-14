@@ -1,21 +1,27 @@
 # johnny5.1
 
-# linux install
+## linux install
+```
 sudo apt-get install python3-pip
 sudo apt-get install python3-virtualenv
 
-# virtualenv --version
+*virtualenv --version*
 virtualenv env
 source env/bin/activate
-py -m pip install -r requirements.txt
+pip install -r requirements.txt
+playwright install
+```
 
-# windows install
-# install python https://www.python.org/downloads/
+## windows install
+- install python https://www.python.org/downloads/
 
+```
 py -m pip install virtualenv
 py -m virtualenv env
 .\env\scripts\activate
 py -m pip install -r requirements.txt
+playwright install
+```
 
-# launch :)
-py johnny5.1.py
+### launch :)
+```py johnny5.1.py```
