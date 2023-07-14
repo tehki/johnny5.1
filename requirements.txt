@@ -1,0 +1,6 @@
+openai
+pyTelegramBotAPI
+selenium
+python-binance
+nest-asyncio
+playwright

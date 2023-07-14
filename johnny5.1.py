@@ -1,3 +1,5 @@
+import os
+import sys
 import config
 import emojis
 import pics
@@ -24,13 +26,12 @@ Allowed = [] # Chats where bot is allowed to talk and delete messages
 Requests = {} # Input requests from { 'chat.id' : '' }
 
 global johnny
+print('Starting up.')
 johnny = AsyncTeleBot (config.johnny5_bot_token)
 johnny.parse_mode = "html"
 
-global forefront
+global forefront, console
 forefront = None
-
-global console
 console = None
 
 async def echo(text):
@@ -42,6 +43,14 @@ async def delete(message):
     if message is not None:
         if await johnny.delete_message(message.chat.id, message.message_id):
             message = None
+
+# /restart
+@johnny.message_handler(commands=['restart'])
+async def restart(message = None):
+    if message is not None:
+        await echo(message.text)
+        await delete(message)
+    os.execvp('py', ['py', sys.argv[0]])
 
 # /update
 @johnny.message_handler(commands=['update'])
