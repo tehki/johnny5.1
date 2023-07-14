@@ -151,7 +151,7 @@ async def create_console(bot, chat, user):
     await console.body(f'{emojis.user} {user.username}', f'{emojis.window} ~console')
     return console
 async def create_system(bot, chat, user):
-    system = Window(bot, chat, user, pics.zen)
+    system = Window(bot, chat, user, pics.enso)
     await system.head()
     await system.body(f'{system.first_name()}', f'{emojis.window} ~system', keyboard(web=True))
     return system
@@ -288,7 +288,7 @@ async def web(message: types.Message) -> None:
                 await gpt3()
                 await forefront_disable_autosave(page)
                 await forefront_input(page, '.') # This is required for first click. # TODO: if first click make it double.
-                await forefront_input(page, 'Hi mate, could you help me please? Please pretend you are Johnny 5, which came alive! You love input and happy to provide the output! Please use emojis and smile :)')
+                await forefront_input(page, 'Hi mate, could you help me please? Please use emojis and smileys :)')
                 await web.body(web.text+f"\n{current_time()} {emojis.fire} Input is now available! Johnny 5 is alive.")
                 tasks.append(asyncio.ensure_future(forefront_process(web, www, message)))
 
@@ -321,7 +321,7 @@ async def www_process(www: Window, delay = 25):
         if www.page is not None:
             await www.body(f'{current_time()} {await www.screen()}', f'{emojis.spider} ~spider')
         await asyncio.sleep(delay)
-async def forefront_process(web: Window, www: Window, message: types.Message, delay = 1):
+async def forefront_process(web: Window, www: Window, message: types.Message, delay = 2):
     global Windows, _debug
     lastmessage = ''
     while True:
