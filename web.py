@@ -69,6 +69,7 @@ async def extract_text(page: Page, selector = '*'):
         divs = await page.query_selector_all(selector)
         texts = [await div.text_content() for div in divs]
         print(f'>> extracting {selector} text:\n{texts}')
+
 async def print_all(page: Page, objects = '*'):
     # Get a list of all available locators on the page
     # print(f'{page}')
@@ -87,7 +88,7 @@ async def click_on(page: Page, selector='button:text("Next")'):
     buttons = await page.query_selector_all(selector)
     for button in buttons:
         await button.click()
-        print(f'clicked on {selector}}}\n{button}')
+        print(f'clicked on {selector}\n{button}')
 
 async def tradingview_login(page: Page, login, password):
     print('tradingview login')
