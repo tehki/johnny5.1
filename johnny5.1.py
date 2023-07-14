@@ -50,7 +50,7 @@ async def restart(message = None):
     if message is not None:
         await echo(message.text)
         await delete(message)
-    os.execvp('py', ['py', sys.argv[0]])
+    os.execvp('python', ['python', sys.argv[0]])
 
 # /update
 @johnny.message_handler(commands=['update'])
@@ -165,61 +165,6 @@ async def create_system(bot, chat, user):
     await system.body(f'{system.first_name()}', f'{emojis.window} ~system', keyboard(web=True))
     return system
 
-# text
-# Handle all incoming text messages
-@johnny.message_handler(func=lambda message: True)
-async def listen(message):
-    global console, _debug
-    print(f'>>> incomming message {message.text}')
-    if _debug: print(f'>>> {message}')
-    user: types.User = message.from_user
-    chat: types.Chat = message.chat
-
-    global Allowed
-    if chat.id not in Allowed:
-        if message.text == '.':
-            print(f"Now I am allowed at {chat.id}")
-            Allowed.append(chat.id)
-        else:
-            print(f"I'm not allowed at {chat.id}")
-            return
-        
-    global Requests
-    if chat.id in Requests:
-        if Requests[chat.id] == '':
-            Requests[chat.id] = message.text
-            print(f'Request {chat.id} is filled with {message.text}')
-
-    await echo(message.text) # console echoes input
-    await delete(message) # deletes the message
-
-    global forefront
-    if forefront is not None:
-        # TODO: Auth with different users!
-        txt: str = message.text
-        if txt.startswith('.') is False and txt.startswith('/') is False and txt.startswith('o/') is False:
-            msg = Window(johnny, chat, user)
-            await msg.body(txt, f'{emojis.speech}')
-            await forefront_input(forefront.page, txt)
-            await johnny.send_chat_action(message.chat.id, 'typing', message_thread_id=message.message_id)
-
-    if message.text == '.': # create new console
-        if console is not None:
-            print(f'>> destroying console:\n{console}')
-            await console.destroy()
-        print(f'>> creating new console...')
-        console = await create_console(johnny, message.chat, message.from_user)
-        if _debug: print(f'>> Done!\n{console}')
-        if forefront is not None:
-            await console.body(f'{console.text}\n{emojis.speech} Forefront is running')
-
-    if message.text.startswith('./'):
-        await web(message)
-
-    if message.text == 'o/':
-        spider = Window(johnny, message.chat, message.from_user)
-        await spider.body(title=emojis.spider)
-
 ### WEB PART ###
 from playwright.async_api import async_playwright, Page
 from web import forefront_login, forefront_input, forefront_output, forefront_disable_autosave, forefront_validate, forefront_continue
@@ -310,6 +255,7 @@ async def web(message: types.Message) -> None:
             
             tasks.append(asyncio.ensure_future(www_process(www, process_delay)))
         tasks.append(asyncio.ensure_future(web_process(web, process_delay)))
+
         web.loop.run_until_complete(asyncio.gather(*tasks))
 
 async def web_process(web: Window, delay = 25):
@@ -357,6 +303,61 @@ async def forefront_process(web: Window, www: Window, message: types.Message, de
 #TODO: Message on delete
 #await context.close()
 #await browser.close()
+
+# text
+# Handle all incoming text messages
+@johnny.message_handler(func=lambda message: True)
+async def listen(message):
+    global console, _debug
+    print(f'>>> incomming message {message.text}')
+    if _debug: print(f'>>> {message}')
+    user: types.User = message.from_user
+    chat: types.Chat = message.chat
+
+    global Allowed
+    if chat.id not in Allowed:
+        if message.text == '.':
+            print(f"Now I am allowed at {chat.id}")
+            Allowed.append(chat.id)
+        else:
+            print(f"I'm not allowed at {chat.id}")
+            return
+        
+    global Requests
+    if chat.id in Requests:
+        if Requests[chat.id] == '':
+            Requests[chat.id] = message.text
+            print(f'Request {chat.id} is filled with {message.text}')
+
+    await echo(message.text) # console echoes input
+    await delete(message) # deletes the message
+
+    global forefront
+    if forefront is not None:
+        # TODO: Auth with different users!
+        txt: str = message.text
+        if txt.startswith('.') is False and txt.startswith('/') is False and txt.startswith('o/') is False:
+            msg = Window(johnny, chat, user)
+            await msg.body(txt, f'{emojis.speech}')
+            await forefront_input(forefront.page, txt)
+            await johnny.send_chat_action(message.chat.id, 'typing', message_thread_id=message.message_id)
+
+    if message.text == '.': # create new console
+        if console is not None:
+            print(f'>> destroying console:\n{console}')
+            await console.destroy()
+        print(f'>> creating new console...')
+        console = await create_console(johnny, message.chat, message.from_user)
+        if _debug: print(f'>> Done!\n{console}')
+        if forefront is not None:
+            await console.body(f'{console.text}\n{emojis.speech} Forefront is running')
+
+    if message.text.startswith('./'):
+        await web(message)
+
+    if message.text == 'o/':
+        spider = Window(johnny, message.chat, message.from_user)
+        await spider.body(title=emojis.spider)
 
 # Buttons callback
 @johnny.callback_query_handler(func=lambda call: True)
