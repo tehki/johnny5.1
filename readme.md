@@ -23,4 +23,4 @@ playwright install
 ```
 
 ### launch :)
-```py johnny5.1.py```
+```python johnny5.1.py```
