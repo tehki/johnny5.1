@@ -212,8 +212,7 @@ async def listen(message):
         await spider.body(title=emojis.spider)
 
 ### WEB PART ###
-from playwright.async_api import Playwright, async_playwright, expect
-from playwright.async_api import Page
+from playwright.async_api import async_playwright, Page
 from web import forefront_login, forefront_input, forefront_output, forefront_disable_autosave, forefront_validate, forefront_continue
 from web import tradingview_login
 from web import save_cookies, extract_urls, needs_validation, is_on_page
@@ -302,8 +301,8 @@ async def web(message: types.Message) -> None:
             
             tasks.append(asyncio.ensure_future(www_process(www, process_delay)))
         tasks.append(asyncio.ensure_future(web_process(web, process_delay)))
-
         web.loop.run_until_complete(asyncio.gather(*tasks))
+
 async def web_process(web: Window, delay = 25):
     global _debug
     while True:
