@@ -13,24 +13,24 @@ global _debug
 process_delay = 10
 _debug = False
 
-global Allowed, Requests
-Allowed = [] # Chats where bot is allowed to talk and delete messages
-Requests = {} # Input requests from { 'chat.id' : '' }
-
 global Windows
 from window import Windows
 from window import Window
 from window import keyboard, kbd # kbd hacks
 from window import current_time
 
+global Allowed, Requests
+Allowed = [] # Chats where bot is allowed to talk and delete messages
+Requests = {} # Input requests from { 'chat.id' : '' }
+
 global johnny
 johnny = AsyncTeleBot (config.johnny5_bot_token)
-# johnny.parse_mode = None
 johnny.parse_mode = "html"
+
 global forefront
 forefront = None
 
-global console # type.Window
+global console
 console = None
 
 async def echo(text):
@@ -58,16 +58,7 @@ async def update(message = None):
             await window.body()
         else:
             await window.body(f'{current_time()} {await window.screen()}', f'{emojis.spider} ~spider')
-# Buttons callback
-@johnny.callback_query_handler(func=lambda call: True)
-async def handle_callback(call):
-    global console, _debug
-    if _debug: print(f'\n{call}')
-    if call.data == '🕸️':
-        await web (call.message)
-    if call.data == ('💢'):
-        global Windows
-        await Windows[call.message.id].destroy()
+
 # /say # TODO: Revisit kbd hacks and console superhacks
 @johnny.message_handler(commands=['say'])
 async def say(message):
@@ -80,6 +71,7 @@ async def say(message):
 
     kbdd = kbd(message.text)
     await johnny.send_message(message.chat.id, message.text, reply_markup=kbdd)
+
 # /request
 @johnny.message_handler(commands=['request'])
 async def request(message):
@@ -98,6 +90,7 @@ async def request(message):
         await asyncio.sleep(1)
 
     return Requests[message.chat.id]
+
 # /claude
 @johnny.message_handler(commands='claude')
 async def claude(message: types.Message = None) -> None:
@@ -108,6 +101,7 @@ async def claude(message: types.Message = None) -> None:
         if await is_on_page(forefront.page, 'p:text("Claude Instant")'):
             await forefront.page.click('p:text("Claude Instant")')
             await forefront.screen()
+
 # /claude+
 @johnny.message_handler(commands='claude+')
 async def claudeplus(message: types.Message = None) -> None:
@@ -118,6 +112,7 @@ async def claudeplus(message: types.Message = None) -> None:
         if await is_on_page(forefront.page, 'p:text("Claude+")'):
             await forefront.page.click('p:text("Claude+")')
             await forefront.screen()
+
 # /gpt4
 @johnny.message_handler(commands='gpt4')
 async def gpt4(message: types.Message = None) -> None:
@@ -128,6 +123,7 @@ async def gpt4(message: types.Message = None) -> None:
         if await is_on_page(forefront.page, 'p:text("GPT-4")'):
             await forefront.page.click('p:text("GPT-4")')
             await forefront.screen()
+
 # /gpt3
 @johnny.message_handler(commands='gpt3')
 async def gpt3(message: types.Message = None) -> None:
@@ -138,6 +134,7 @@ async def gpt3(message: types.Message = None) -> None:
         if await is_on_page(forefront.page, 'p:text("GPT-3.5")'):
             await forefront.page.click('p:text("GPT-3.5")')
             await forefront.screen()
+
 # /windows
 @johnny.message_handler(commands=['windows'])
 async def windows(message):
@@ -156,7 +153,7 @@ async def create_console(bot, chat, user):
 async def create_system(bot, chat, user):
     system = Window(bot, chat, user, pics.zen)
     await system.head()
-    await system.body(f'{system.first_name()}', f'{emojis.window} ~system', keyboard(hi=True))
+    await system.body(f'{system.first_name()}', f'{emojis.window} ~system', keyboard(web=True))
     return system
 
 # text
@@ -294,7 +291,7 @@ async def web(message: types.Message) -> None:
                 await forefront_input(page, '.') # This is required for first click. # TODO: if first click make it double.
                 await forefront_input(page, 'Hi mate, could you help me please? Please pretend you are Johnny 5, which came alive! You love input and happy to provide the output! Please use emojis and smile :)')
                 await web.body(web.text+f"\n{current_time()} {emojis.fire} Input is now available! Johnny 5 is alive.")
-                tasks.append(asyncio.ensure_future(forefront_ai(web, www, message)))
+                tasks.append(asyncio.ensure_future(forefront_process(web, www, message)))
 
             if 'tradingview.com' in page.url:
                 if await tradingview_login(page, johnny_proton_login, johnny_proton_password) is True:
@@ -303,11 +300,11 @@ async def web(message: types.Message) -> None:
                     global tradingview
                     tradingview = www
             
-            tasks.append(asyncio.ensure_future(www_ai(www, process_delay)))
-        tasks.append(asyncio.ensure_future(web_ai(web, process_delay)))
+            tasks.append(asyncio.ensure_future(www_process(www, process_delay)))
+        tasks.append(asyncio.ensure_future(web_process(web, process_delay)))
 
         web.loop.run_until_complete(asyncio.gather(*tasks))
-async def web_ai(web: Window, delay = 25):
+async def web_process(web: Window, delay = 25):
     global _debug
     while True:
         if _debug: print(f'web_ai(): {web.id}')
@@ -316,7 +313,7 @@ async def web_ai(web: Window, delay = 25):
         await web.update()
         await save_cookies(web.context, f'cookies.json')
         await asyncio.sleep(delay) 
-async def www_ai(www: Window, delay = 25):
+async def www_process(www: Window, delay = 25):
     global _debug
     while True:
         if _debug: print(f'www_ai(): {www.page.url}')
@@ -325,7 +322,7 @@ async def www_ai(www: Window, delay = 25):
         if www.page is not None:
             await www.body(f'{current_time()} {await www.screen()}', f'{emojis.spider} ~spider')
         await asyncio.sleep(delay)
-async def forefront_ai(web: Window, www: Window, message: types.Message, delay = 1):
+async def forefront_process(web: Window, www: Window, message: types.Message, delay = 1):
     global Windows, _debug
     lastmessage = ''
     while True:
@@ -350,8 +347,18 @@ async def forefront_ai(web: Window, www: Window, message: types.Message, delay =
         await asyncio.sleep(delay)
 
 #TODO: Message on delete
-        # ---------------------
-        #await context.close()
-        #await browser.close()
+#await context.close()
+#await browser.close()
+
+# Buttons callback
+@johnny.callback_query_handler(func=lambda call: True)
+async def handle_callback(call):
+    global console, _debug
+    if _debug: print(f'\n{call}')
+    if call.data == '🕸️':
+        await web (call.message)
+    if call.data == ('💢'):
+        global Windows
+        await Windows[call.message.id].destroy()
 
 asyncio.run(johnny.infinity_polling())
