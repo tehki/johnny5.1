@@ -1,18 +1,17 @@
 # johnny5.1
 
-## linux install
+### linux install
 ```
 sudo apt-get install python3-pip
 sudo apt-get install python3-virtualenv
 
-*virtualenv --version*
 virtualenv env
 source env/bin/activate
 pip install -r requirements.txt
 playwright install
 ```
 
-## windows install
+### windows install
 - install python https://www.python.org/downloads/
 
 ```
