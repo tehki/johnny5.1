@@ -3,7 +3,6 @@ import nest_asyncio
 nest_asyncio.apply()
 
 async def my_coroutine():
-    #
     return
 
 async def main():
