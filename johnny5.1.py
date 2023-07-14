@@ -102,15 +102,15 @@ async def claude(message: types.Message = None) -> None:
             await forefront.page.click('p:text("Claude Instant")')
             await forefront.screen()
 
-# /claude+
-@johnny.message_handler(commands='claude+')
+# /claude2
+@johnny.message_handler(commands='claude2')
 async def claudeplus(message: types.Message = None) -> None:
     if message is not None:
         await echo(message.text)
         await delete(message)
     if forefront is not None:
-        if await is_on_page(forefront.page, 'p:text("Claude+")'):
-            await forefront.page.click('p:text("Claude+")')
+        if await is_on_page(forefront.page, 'p:text("Claude 2")'):
+            await forefront.page.click('p:text("Claude 2")')
             await forefront.screen()
 
 # /gpt4
