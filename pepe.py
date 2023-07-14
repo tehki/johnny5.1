@@ -121,12 +121,6 @@ def handle_sticker(message):
 
     for tag in hashtags:
         pepe.send_sticker(tag[1:], message.sticker.file_id)
-    
-    # If sticker message has a reply - search for #chatid in a reply and send sticker back to #chatid
-    if message.reply_to_message != None:
-        hashtags = re.findall(r'#\w+', message.reply_to_message.text)
-        for tag in hashtags:
-            pepe.send_sticker(tag[1:], message.sticker.file_id)
 
 # TODO: Send keyboard
 
