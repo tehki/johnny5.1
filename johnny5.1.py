@@ -47,9 +47,6 @@ async def delete(message):
 # /restart
 @johnny.message_handler(commands=['restart'])
 async def restart(message = None):
-    if message is not None:
-        await echo(message.text)
-        await delete(message)
     os.execvp('python', ['python', sys.argv[0]])
 
 # /update
