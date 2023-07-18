@@ -230,3 +230,23 @@ async def forefront_validate(page: Page, code: str):
         return True
     except Exception as e:
         return False
+    
+async def forefront_claude(page: Page):
+    if page is not None:
+        if await is_on_page(page, 'p:text("Claude Instant")'):
+            await page.click('p:text("Claude Instant")')
+
+async def forefront_claudeplus(page: Page):
+    if page is not None:
+        if await is_on_page(page, 'p:text("Claude 2")'):
+            await page.click('p:text("Claude 2")')
+
+async def forefront_gpt4(page: Page):
+    if page is not None:
+        if await is_on_page(page, 'p:text("GPT-4")'):
+            await page.click('p:text("GPT-4")')
+
+async def forefront_gpt3(page: Page):
+    if page is not None:
+        if await is_on_page(page, 'p:text("GPT-3.5")'):
+            await page.click('p:text("GPT-3.5")')

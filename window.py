@@ -25,6 +25,7 @@ _debug = False
 # Global Windows
 global Windows
 Windows = {} # { Window.id : Window() }
+
 # Keyboard hack.
 def kbd(hack):
     dot = False
@@ -210,33 +211,50 @@ class Window(types.Message):
         if self.message is not None:
             if _debug:
                 print(f'{self.message.message_id}:async_update:output({len(self.output)}):\n{self.output}')
-            if self.photo is not None:
-                if await strip_html(self.message.caption) != await strip_html(self.output):
-                    keyboard = None if self._zen else self.keyboard
-                    # if _debug: print(f'UPDATING:\n{self.output}')
-                    self.message = await self.bot.edit_message_caption(self.output, self.chat.id, self.message.id, parse_mode=self.parse_mode, reply_markup=keyboard)
-            elif self.output != '':
-                if await strip_html(self.message.text) != await strip_html(self.output):
-                    keyboard = None if self._zen else self.keyboard
-                    # if _debug: print(f'UPDATING:\n{self.output}')
-                    self.message = await self.bot.edit_message_text(self.output, self.chat.id, self.message.message_id, parse_mode=self.parse_mode, reply_markup=keyboard)
+
+            try:
+                # Code that might raise an exception
+                # ...
+                if self.photo is not None:
+                    if await strip_html(self.message.caption) != await strip_html(self.output):
+                        keyboard = None if self._zen else self.keyboard
+                        # if _debug: print(f'UPDATING:\n{self.output}')
+                        self.message = await self.bot.edit_message_caption(self.output, self.chat.id, self.message.id, parse_mode=self.parse_mode, reply_markup=keyboard)
+                elif self.output != '':
+                    if await strip_html(self.message.text) != await strip_html(self.output):
+                        keyboard = None if self._zen else self.keyboard
+                        # if _debug: print(f'UPDATING:\n{self.output}')
+                        self.message = await self.bot.edit_message_text(self.output, self.chat.id, self.message.message_id, parse_mode=self.parse_mode, reply_markup=keyboard)
+            except Exception as e:
+                # Code to handle the exception
+                # ...
+                print(f'Exception in async_update: {str(e)}')
 
     async def async_upload(self):
         if self.message is not None:
-            if self.photo is not None: #TODO: Check content-types
-                if isinstance(self.photo, str):
-                    if self.photo.startswith('./'): #local file
-                        with open(self.photo, 'rb') as photo:
-                            self.pic = types.InputMediaPhoto(photo)
+            try:
+                # Code that might raise an exception
+                # ... 
+                if self.photo is not None: #TODO: Check content-types
+                    if isinstance(self.photo, str):
+
+                        if self.photo.startswith('./'): #local file
+                            with open(self.photo, 'rb') as photo:
+                                self.pic = types.InputMediaPhoto(photo)
+                                self.message = await self.bot.edit_message_media(self.pic, self.chat.id, self.message.id)
+                        elif self.photo.startswith('https://') or self.photo.startswith('http://'): #url
+                            self.pic = types.InputMediaPhoto(self.photo)
                             self.message = await self.bot.edit_message_media(self.pic, self.chat.id, self.message.id)
-                    elif self.photo.startswith('https://') or self.photo.startswith('http://'): #url
-                        self.pic = types.InputMediaPhoto(self.photo)
-                        self.message = await self.bot.edit_message_media(self.pic, self.chat.id, self.message.id)
-                    else: #fileid?
-                        self.pic = types.InputMediaPhoto(self.photo)
-                        self.message = await self.bot.edit_message_media(self.pic, self.chat.id, self.message.id)
-                else: # TODO: ?
-                    self.message = await self.bot.edit_message_media(photo, self.message.chat.id, self.message.message_id) 
+                        else: #fileid?
+                            self.pic = types.InputMediaPhoto(self.photo)
+                            self.message = await self.bot.edit_message_media(self.pic, self.chat.id, self.message.id)
+                    else: # TODO: ?
+                        self.message = await self.bot.edit_message_media(photo, self.message.chat.id, self.message.message_id)
+            except Exception as e:
+                # Code to handle the exception
+                # ...
+                print(f'Exception in async_upload: {str(e)}')
+
     async def async_create(self):
         if self.message is None:
             if self.photo is not None:
