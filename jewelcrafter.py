@@ -2,8 +2,9 @@ import os
 import smtplib
 from email.message import EmailMessage
 
-from telebot import types
 from telebot.async_telebot import AsyncTeleBot
+from telebot import types
+
 import sys
 import config
 import emojis
@@ -65,14 +66,14 @@ async def send_email_with_attachments(sender_email, receiver_email, subject, bod
 async def search_for_jewelry(message):
     # Path to the main folder
     main_folder = 'jewelcrafter'
-
+    rings_list = []
     # Iterate through the ring names
     for ring_name in os.listdir(main_folder):
         ring_folder = os.path.join(main_folder, ring_name)
         if os.path.isdir(ring_folder):
             # Iterate through the sizes
             for size in os.listdir(ring_folder):
-                files_list = []
+                sizes_list = []
                 size_folder = os.path.join(ring_folder, size)
                 if os.path.isdir(size_folder):
                     # Read the contents of the final folder
@@ -82,25 +83,78 @@ async def search_for_jewelry(message):
                             with open(file_path, 'rb') as file:
                                 file_name = file.name
                                 file_data = file.read()
-                                files_list.append((file_name, file_data))
-            
+                                sizes_list.append((file_name, file_data))
+                                rings_list.append((ring_name, size, file_name))
+  
                 # Send the contents via email
-                await jewelcrafter.send_message(message.chat.id, f'Отправляю письмо... {size_folder}')
+                await jewelcrafter.send_message(message.chat.id, f'НЕ Отправляю письмо... {size_folder}')
 
                 sender_email = "ilia.gruntal@gmail.com"
                 receiver_email = "finderlink.id@gmail.com"
                 subject = f"Ювелирка {size_folder}"
                 body = "Пожалуйста найдите файлы во вложении к письму."
-                await send_email_with_attachments(sender_email, receiver_email, subject, body, files_list)
+                # await send_email_with_attachments(sender_email, receiver_email, subject, body, sizes_list)
 
-                print(f'Done... {len(files_list)} files')
-                await jewelcrafter.send_message(message.chat.id, f'Готово... {len(files_list)} файлов отправлено на почту {receiver_email}')
+                print(f'Done... {len(sizes_list)} files')
+                await jewelcrafter.send_message(message.chat.id, f'Готово... {len(sizes_list)} файлов НЕ отправлено на почту {receiver_email}')
+
+    await jewelcrafter.send_message(message.chat.id, f'Полный список файлов/колец:\n{rings_list}')
+    return rings_list
+
+# Keyboard part.
+
+# Create a button
+def create_button(emoji):
+    return types.InlineKeyboardButton(text=f'{emoji}', callback_data=f'{emoji}')
+# Create a default keyboard
+def keyboard(roll=False, close=False, web=False, ring=True, rings=False):
+    # Create an inline keyboard
+    keyboard = types.InlineKeyboardMarkup()
+    # Adding buttons
+    if close:
+        keyboard.add(create_button('💢') )
+    if roll:
+        keyboard.add(create_button('🎲'))
+    if web:
+        keyboard.add(create_button('🕸️'))
+    if ring:
+        keyboard.add(create_button('💍'))
+    if rings:
+        #TODO: Search thru list, automate.
+        keyboard.add(create_button('Ring #8'), create_button('Ring #13 ALFA'))
+    return keyboard
+
+# Buttons callback
+@jewelcrafter.callback_query_handler(func=lambda call: True)
+async def handle_callback(call):
+    global console, _debug
+    if _debug: print(f'\n{call}')
+    if call.data == ('🎲'):
+        await jewelcrafter.send_dice(call.message.chat.id, emoji='🎲')
+    if call.data == ('💍'):
+        await jewelcrafter.send_message(call.message.chat.id, 'Выберите кольцо', reply_markup=keyboard(rings=True))
+    if call.data == ('💢'):
+        global Windows
+        await Windows[call.message.id].destroy()
+### end of keyboard part
 
 # /start
 @jewelcrafter.message_handler(commands=['start'])
 async def start(message = None):
     await jewelcrafter.send_message(message.chat.id, 'Отправляю содержимое Ювелирки на почту')
-    await search_for_jewelry(message)
+    global rings_list
+    rings_list = await search_for_jewelry(message)
+    global rings
+    rings = {}
+    for ring in rings_list:
+        if not ring[0] in rings:
+            rings[ring[0]] = list(ring[1:])
+        else:
+            rings[ring[0]].append(ring[1:])
+
+    await jewelcrafter.send_message(message.chat.id, f'Реклама.\nСтань профессональным трейдером: http://13-трейдеров.рф/\nПолучи счёт от 25.000$ до 400.000$ для торговли на биржах США.')
+    await jewelcrafter.send_message(message.chat.id, 'Проверяем клавиатуру', reply_markup=keyboard(roll=True, ring=False))
+    await jewelcrafter.send_message(message.chat.id, 'Заказать кольцо', reply_markup=keyboard())
 
 # /restart
 @jewelcrafter.message_handler(commands=['restart'])
@@ -232,13 +286,6 @@ async def listen(message):
         spider = Window(jewelcrafter, message.chat, message.from_user)
         await spider.body(title=emojis.spider)
 
-# Buttons callback
-@jewelcrafter.callback_query_handler(func=lambda call: True)
-async def handle_callback(call):
-    global console, _debug
-    if _debug: print(f'\n{call}')
-    if call.data == ('💢'):
-        global Windows
-        await Windows[call.message.id].destroy()
+
 '''
 asyncio.run(jewelcrafter.infinity_polling())
