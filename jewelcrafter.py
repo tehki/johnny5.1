@@ -47,20 +47,22 @@ async def delete(message):
             message = None
 
 # Function to send email
-async def send_email(file_data, file_name):
+async def send_email_with_attachments(sender_email, receiver_email, subject, body, files):
     msg = EmailMessage()
-    msg.add_attachment(file_data, maintype='application', subtype='octet-stream', filename=file_name)
+    msg["From"] = sender_email
+    msg["To"] = receiver_email
+    msg["Subject"] = subject
+    msg.set_content(body)
 
-    msg['Subject'] = 'Jewelry Contents'
-    msg['From'] = 'ilia.gruntal@gmail.com'
-    msg['To'] = 'ilia.gruntal.2@gmail.com'
+    for filename, file_data in files:
+        msg.add_attachment(file_data, maintype="application", subtype="octet-stream", filename=filename)
 
     with smtplib.SMTP_SSL('smtp.gmail.com', 465) as smtp_server:
         smtp_server.login(config.gmail_login, config.gmail_password)
         smtp_server.send_message(msg)
         smtp_server.quit()
 
-async def search_for_jewelry():
+async def search_for_jewelry(message):
     # Path to the main folder
     main_folder = 'jewelcrafter'
 
@@ -70,6 +72,7 @@ async def search_for_jewelry():
         if os.path.isdir(ring_folder):
             # Iterate through the sizes
             for size in os.listdir(ring_folder):
+                files_list = []
                 size_folder = os.path.join(ring_folder, size)
                 if os.path.isdir(size_folder):
                     # Read the contents of the final folder
@@ -77,18 +80,27 @@ async def search_for_jewelry():
                         file_path = os.path.join(size_folder, file_name)
                         if os.path.isfile(file_path):
                             with open(file_path, 'rb') as file:
-                                file_data = file.read()
                                 file_name = file.name
-                                # Send the contents via email
-                                print(f'Sending email... {file_name}')
-                                await send_email(file_data, file_name)
-                                print('Done...')
-                                # print(contents)
+                                file_data = file.read()
+                                files_list.append((file_name, file_data))
+            
+                # Send the contents via email
+                await jewelcrafter.send_message(message.chat.id, f'Отправляю письмо... {size_folder}')
+
+                sender_email = "ilia.gruntal@gmail.com"
+                receiver_email = "ilia.gruntal.2@gmail.com"
+                subject = f"Ювелирка {size_folder}"
+                body = "Please find the attached files."
+                await send_email_with_attachments(sender_email, receiver_email, subject, body, files_list)
+
+                print(f'Done... {len(files_list)} files')
+                await jewelcrafter.send_message(message.chat.id, f'Готово... {len(files_list)} файлов отправлено на почту {receiver_email}')
 
 # /start
 @jewelcrafter.message_handler(commands=['start'])
 async def start(message = None):
-    await search_for_jewelry()
+    await jewelcrafter.send_message(message.chat.id, 'Отправляю содержимое Ювелирки на почту')
+    await search_for_jewelry(message)
 
 # /restart
 @jewelcrafter.message_handler(commands=['restart'])
