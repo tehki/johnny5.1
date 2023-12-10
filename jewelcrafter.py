@@ -47,9 +47,9 @@ async def delete(message):
             message = None
 
 # Function to send email
-async def send_email(contents):
+async def send_email(file_data, file_name):
     msg = EmailMessage()
-    msg.set_content(contents)
+    msg.add_attachment(file_data, maintype='application', subtype='octet-stream', filename=file_name)
 
     msg['Subject'] = 'Jewelry Contents'
     msg['From'] = 'ilia.gruntal@gmail.com'
@@ -63,8 +63,7 @@ async def send_email(contents):
 async def search_for_jewelry():
     # Path to the main folder
     main_folder = 'jewelcrafter'
-    await send_email(main_folder)
-'''
+
     # Iterate through the ring names
     for ring_name in os.listdir(main_folder):
         ring_folder = os.path.join(main_folder, ring_name)
@@ -78,11 +77,14 @@ async def search_for_jewelry():
                         file_path = os.path.join(size_folder, file_name)
                         if os.path.isfile(file_path):
                             with open(file_path, 'rb') as file:
-                                contents = file.read()
+                                file_data = file.read()
+                                file_name = file.name
                                 # Send the contents via email
-                                send_email(contents)
+                                print(f'Sending email... {file_name}')
+                                await send_email(file_data, file_name)
+                                print('Done...')
                                 # print(contents)
-'''
+
 # /start
 @jewelcrafter.message_handler(commands=['start'])
 async def start(message = None):
