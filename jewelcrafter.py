@@ -88,9 +88,9 @@ async def search_for_jewelry(message):
                 await jewelcrafter.send_message(message.chat.id, f'Отправляю письмо... {size_folder}')
 
                 sender_email = "ilia.gruntal@gmail.com"
-                receiver_email = "ilia.gruntal.2@gmail.com"
+                receiver_email = "finderlink.id@gmail.com"
                 subject = f"Ювелирка {size_folder}"
-                body = "Please find the attached files."
+                body = "Пожалуйста найдите файлы во вложении к письму."
                 await send_email_with_attachments(sender_email, receiver_email, subject, body, files_list)
 
                 print(f'Done... {len(files_list)} files')
