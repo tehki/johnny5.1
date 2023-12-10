@@ -98,7 +98,7 @@ async def search_for_jewelry(message):
                 print(f'Done... {len(sizes_list)} files')
                 await jewelcrafter.send_message(message.chat.id, f'Готово... {len(sizes_list)} файлов НЕ отправлено на почту {receiver_email}')
 
-    await jewelcrafter.send_message(message.chat.id, f'Полный список файлов/колец:\n{rings_list}')
+    await jewelcrafter.send_message(message.chat.id, f'Полный список файлов:\n{rings_list}')
     return rings_list
 
 # Keyboard part.
@@ -106,8 +106,9 @@ async def search_for_jewelry(message):
 # Create a button
 def create_button(emoji):
     return types.InlineKeyboardButton(text=f'{emoji}', callback_data=f'{emoji}')
+
 # Create a default keyboard
-def keyboard(roll=False, close=False, web=False, ring=True, rings=False):
+def keyboard(roll=False, close=False, web=False, ring=True, rings_choose=False):
     # Create an inline keyboard
     keyboard = types.InlineKeyboardMarkup()
     # Adding buttons
@@ -119,9 +120,10 @@ def keyboard(roll=False, close=False, web=False, ring=True, rings=False):
         keyboard.add(create_button('🕸️'))
     if ring:
         keyboard.add(create_button('💍'))
-    if rings:
-        #TODO: Search thru list, automate.
-        keyboard.add(create_button('Ring #8'), create_button('Ring #13 ALFA'))
+    if rings_choose:
+        global rings
+        for ring in rings:
+            keyboard.add(create_button(ring))
     return keyboard
 
 # Buttons callback
@@ -132,7 +134,7 @@ async def handle_callback(call):
     if call.data == ('🎲'):
         await jewelcrafter.send_dice(call.message.chat.id, emoji='🎲')
     if call.data == ('💍'):
-        await jewelcrafter.send_message(call.message.chat.id, 'Выберите кольцо', reply_markup=keyboard(rings=True))
+        await jewelcrafter.send_message(call.message.chat.id, 'Выберите кольцо', reply_markup=keyboard(rings_choose=True))
     if call.data == ('💢'):
         global Windows
         await Windows[call.message.id].destroy()
@@ -151,7 +153,7 @@ async def start(message = None):
             rings[ring[0]] = list(ring[1:])
         else:
             rings[ring[0]].append(ring[1:])
-
+    await jewelcrafter.send_message(message.chat.id, f'Полный список колец (сортировка / размеры):\n{rings}')
     await jewelcrafter.send_message(message.chat.id, f'Реклама.\nСтань профессональным трейдером: http://13-трейдеров.рф/\nПолучи счёт от 25.000$ до 400.000$ для торговли на биржах США.')
     await jewelcrafter.send_message(message.chat.id, 'Проверяем клавиатуру', reply_markup=keyboard(roll=True, ring=False))
     await jewelcrafter.send_message(message.chat.id, 'Заказать кольцо', reply_markup=keyboard())
