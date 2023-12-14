@@ -137,6 +137,19 @@ async def handle_callback(call):
         #await jewelcrafter.delete_message(call.message.chat.id, call.message.message_id)
 
     if call.data in rings:
+        sizes = rings[call.data]
+        sizes_current = {}
+        
+        print(f'\nrings: {rings}')
+        print(f'\nsizes: {sizes}')
+        print(f'\nsizes_current: {sizes_current}')
+        print('-------pre--------')
+
+        for size in sizes:
+            print(f'\nsize: {size}')
+            if not size[0] in sizes_current:
+                sizes_current[size[0]] = list(size[0])
+
         await jewelcrafter.send_message(call.message.chat.id, f'Инфа по кольцу {call.data}:\n{rings[call.data]}')
         await jewelcrafter.delete_message(call.message.chat.id, call.message.message_id)
 ### end of keyboard part
@@ -154,12 +167,14 @@ async def start(message = None):
         if not ring[0] in rings:
             rings[ring[0]] = list(ring[1:])
         else:
-            rings[ring[0]].append(list(ring[1:]))
+            rings[ring[0]].extend(list(ring[1:]))
+
     await jewelcrafter.send_message(message.chat.id, f'Полный список колец (сортировка / размеры):\n{rings}')
     await jewelcrafter.send_message(message.chat.id, f'Реклама.\nСтань профессональным трейдером: http://13-трейдеров.рф/\nПолучи счёт от 25.000$ до 400.000$ для торговли на биржах США.')
 
     await jewelcrafter.send_photo(message.chat.id, photo=open('.\pics\pepe.png', 'rb'))
-    await jewelcrafter.send_photo(message.chat.id, photo=open('.\pics\img-ring.jpeg', 'rb'), caption='Заказать кольцо',  reply_markup=keyboard())
+    await jewelcrafter.send_photo(message.chat.id, photo=open('.\pics\img-ring.jpeg', 'rb'),
+                                  caption='Заказать кольцо',  reply_markup=keyboard())
 
 # /restart
 @jewelcrafter.message_handler(commands=['restart'])
