@@ -142,13 +142,16 @@ async def handle_callback(call):
         
         print(f'\nrings: {rings}')
         print(f'\nsizes: {sizes}')
-        print(f'\nsizes_current: {sizes_current}')
+
         print('-------pre--------')
 
         for size in sizes:
             print(f'\nsize: {size}')
             if not size[0] in sizes_current:
                 sizes_current[size[0]] = list(size[0])
+
+        print('-------post--------')
+        print(f'\nsizes_current: {sizes_current}')
 
         await jewelcrafter.send_message(call.message.chat.id, f'Инфа по кольцу {call.data}:\n{rings[call.data]}')
         await jewelcrafter.delete_message(call.message.chat.id, call.message.message_id)
