@@ -108,7 +108,7 @@ def create_button(emoji):
     return types.InlineKeyboardButton(text=f'{emoji}', callback_data=f'{emoji}')
 
 # Create a default keyboard
-def keyboard(roll=False, web=False, ring=True, rings_choose=False):
+def keyboard(roll=False, web=False, ring=True, rings_choose=False, rings_size_choose=False, sizes_current=[]):
     # Create an inline keyboard
     keyboard = types.InlineKeyboardMarkup()
     # Adding buttons
@@ -119,10 +119,22 @@ def keyboard(roll=False, web=False, ring=True, rings_choose=False):
     if ring:
         keyboard.add(create_button('💍'))
     if rings_choose:
-        global rings
+        global rings #TODO: Consider switching to local
         for ring in rings:
             keyboard.add(create_button(ring))
+    if rings_size_choose:
+        if len(sizes_current) > 0:
+            for size in sizes_current:
+                keyboard.add(create_button(size))
     return keyboard
+
+def is_float(s):
+    parts = s.split('.')
+    if len(parts) != 2:
+        return False
+    if all(part.isdigit() for part in parts):
+        return True
+    return False
 
 # Buttons callback
 @jewelcrafter.callback_query_handler(func=lambda call: True)
@@ -138,22 +150,17 @@ async def handle_callback(call):
 
     if call.data in rings:
         sizes = rings[call.data]
-        sizes_current = {}
+        sizes_current = []
         
-        print(f'\nrings: {rings}')
-        print(f'\nsizes: {sizes}')
-
-        print('-------pre--------')
-
         for size in sizes:
             print(f'\nsize: {size}')
-            if not size[0] in sizes_current:
-                sizes_current[size[0]] = list(size[0])
+            if is_float(size) or size.isdigit():
+                if not size in sizes_current:
+                    sizes_current.append(size)
 
-        print('-------post--------')
         print(f'\nsizes_current: {sizes_current}')
 
-        await jewelcrafter.send_message(call.message.chat.id, f'Инфа по кольцу {call.data}:\n{rings[call.data]}')
+        await jewelcrafter.send_message(call.message.chat.id, f'Выберите размер', reply_markup=keyboard(rings_size_choose=True, sizes_current = sizes_current))
         await jewelcrafter.delete_message(call.message.chat.id, call.message.message_id)
 ### end of keyboard part
 
