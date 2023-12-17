@@ -161,7 +161,7 @@ def create_button(emoji):
     return types.InlineKeyboardButton(text=f'{emoji}', callback_data=f'{emoji}')
 
 # Create a default keyboard
-def keyboard(roll=False, web=False, ring=True, rings_choose=False, rings_size_choose=False, sizes_current=[]):
+def keyboard(roll=False, web=False, ring=False, rings_choose=False, rings_size_choose=False, sizes_current=[]):
     # Create an inline keyboard
     keyboard = types.InlineKeyboardMarkup()
     # Adding buttons
@@ -220,22 +220,20 @@ async def handle_callback(call):
 # /start
 @jewelcrafter.message_handler(commands=['start'])
 async def start(message = None):
-    await search_for_jewelry(message)
-    '''
+    jewelry = await search_for_jewelry(message)
+    await jewelcrafter.send_message(message.chat.id, f'Полный список файлов:\n{jewelry}')
     await jewelcrafter.send_message(message.chat.id, 'Проверяем клавиатуру', reply_markup=keyboard(roll=True, ring=False))
-    await jewelcrafter.send_message(message.chat.id, 'Отправляю содержимое Ювелирки на почту')
+    # await jewelcrafter.send_message(message.chat.id, 'Отправляю содержимое Ювелирки на почту')
 
-    global rings
-    rings = await search_for_rings(message)
+    # global rings
+    # rings = await search_for_rings(message)
 
-    await jewelcrafter.send_message(message.chat.id, f'Полный список колец (сортировка / размеры):\n{rings}')
+    # await jewelcrafter.send_message(message.chat.id, f'Полный список колец (сортировка / размеры):\n{rings}')
     await jewelcrafter.send_message(message.chat.id, f'Реклама.\nСтань профессональным трейдером: http://13-трейдеров.рф/\nПолучи счёт от 25.000$ до 400.000$ для торговли на биржах США.')
 
-    await jewelcrafter.send_photo(message.chat.id, photo=open('.\pics\pepe.png', 'rb'))
-    await jewelcrafter.send_photo(message.chat.id, photo=open('.\pics\img-ring.jpeg', 'rb'),
-                                  caption='Заказать кольцо',  reply_markup=keyboard())
+    #await jewelcrafter.send_photo(message.chat.id, photo=open('.\pics\img-ring.jpeg', 'rb'),
+    #                              caption='Заказать кольцо',  reply_markup=keyboard())
 
-                                  '''
 # /restart
 @jewelcrafter.message_handler(commands=['restart'])
 async def restart(message = None):
