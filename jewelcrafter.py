@@ -28,7 +28,11 @@ global Allowed, Requests
 Allowed = [] # Chats where bot is allowed to talk and delete messages
 Requests = {} # Input requests from { 'chat.id' : '' }
 
+# Creating global bot
 global jewelcrafter
+# Creating global jewelry dictionary
+global jewelry
+
 print('Starting up.')
 jewelcrafter = AsyncTeleBot (config.jewelcrafter_bot_token)
 jewelcrafter.parse_mode = "html"
@@ -64,8 +68,49 @@ async def send_email_with_attachments(sender_email, receiver_email, subject, bod
         smtp_server.quit()
 
 async def search_for_jewelry(message):
+    global jewelry
+    jewelry = {}
     # Path to the main folder
-    main_folder = 'jewelcrafter'
+    main_folder = 'jewelcrafter' 
+
+    # Iterate through the items in jewelry to find out categories
+    for category in os.listdir(main_folder):
+        category_folder = os.path.join(main_folder, category)
+        if os.path.isdir(category_folder):
+            # Iterate through category models available
+            for model in os.listdir(category_folder):
+                model_folder = os.path.join(category_folder, model)
+                if os.path.isdir(model_folder):
+                    # Iterate through sizes of the model available
+                    for size in os.listdir(model_folder):
+                        size_folder = os.path.join(model_folder, size)
+                        if os.path.isdir(size_folder):
+                            # Read the contents of the final folder
+                            for file_name in os.listdir(size_folder):
+                                file_path = os.path.join(size_folder, file_name)
+                                if os.path.isfile(file_path):
+                                    with open(file_path, 'rb') as file:
+                                        # file_data = file.read() We do not need to read file data, only name.
+                                        # Here we have a final point to populate out jewelry dictionary.
+                                        file_name = file.name
+                                        print(jewelry)
+                                        if not category in jewelry:
+                                            jewelry = {f'{category}': {f'{model}': {f'{size}': [file_name]}}}
+                                        else:
+                                            if not model in jewelry[f'{category}']:
+                                                    jewelry[f'{category}'][f'{model}'] = {f'{size}': [file_name]}
+                                            else:
+                                                if not size in jewelry[f'{category}'][f'{model}']:
+                                                    jewelry[f'{category}'][f'{model}'][f'{size}'] = [file_name]
+                                                else:
+                                                    jewelry[f'{category}'][f'{model}'][f'{size}'].append(file_name)
+                                        print(jewelry)
+                                        
+    return jewelry
+
+async def search_for_rings(message):
+    # Path to the main folder
+    main_folder = 'jewelcrafter\\rings'
     rings_list = []
     # Iterate through the ring names
     for ring_name in os.listdir(main_folder):
@@ -99,7 +144,15 @@ async def search_for_jewelry(message):
                 await jewelcrafter.send_message(message.chat.id, f'Готово... {len(sizes_list)} файлов НЕ отправлено на почту {receiver_email}')
 
     await jewelcrafter.send_message(message.chat.id, f'Полный список файлов:\n{rings_list}')
-    return rings_list
+    
+    rings = {}
+    for ring in rings_list:
+        if not ring[0] in rings:
+            rings[ring[0]] = list(ring[1:])
+        else:
+            rings[ring[0]].extend(list(ring[1:]))
+
+    return rings
 
 # Keyboard part.
 
@@ -167,17 +220,13 @@ async def handle_callback(call):
 # /start
 @jewelcrafter.message_handler(commands=['start'])
 async def start(message = None):
+    await search_for_jewelry(message)
+    '''
     await jewelcrafter.send_message(message.chat.id, 'Проверяем клавиатуру', reply_markup=keyboard(roll=True, ring=False))
     await jewelcrafter.send_message(message.chat.id, 'Отправляю содержимое Ювелирки на почту')
-    global rings_list
-    rings_list = await search_for_jewelry(message)
+
     global rings
-    rings = {}
-    for ring in rings_list:
-        if not ring[0] in rings:
-            rings[ring[0]] = list(ring[1:])
-        else:
-            rings[ring[0]].extend(list(ring[1:]))
+    rings = await search_for_rings(message)
 
     await jewelcrafter.send_message(message.chat.id, f'Полный список колец (сортировка / размеры):\n{rings}')
     await jewelcrafter.send_message(message.chat.id, f'Реклама.\nСтань профессональным трейдером: http://13-трейдеров.рф/\nПолучи счёт от 25.000$ до 400.000$ для торговли на биржах США.')
@@ -186,6 +235,7 @@ async def start(message = None):
     await jewelcrafter.send_photo(message.chat.id, photo=open('.\pics\img-ring.jpeg', 'rb'),
                                   caption='Заказать кольцо',  reply_markup=keyboard())
 
+                                  '''
 # /restart
 @jewelcrafter.message_handler(commands=['restart'])
 async def restart(message = None):
