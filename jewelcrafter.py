@@ -161,7 +161,8 @@ def create_button(emoji):
     return types.InlineKeyboardButton(text=f'{emoji}', callback_data=f'{emoji}')
 
 # Create a default keyboard
-def keyboard(roll=False, web=False, ring=False, rings_choose=False, rings_size_choose=False, sizes_current=[]):
+def keyboard(roll=False, web=False, ring=False, category_choose=False, model_choose=False, category = '', size_choose=False, model = ''):
+    global jewelry
     # Create an inline keyboard
     keyboard = types.InlineKeyboardMarkup()
     # Adding buttons
@@ -169,16 +170,20 @@ def keyboard(roll=False, web=False, ring=False, rings_choose=False, rings_size_c
         keyboard.add(create_button('🎲'))
     if web:
         keyboard.add(create_button('🕸️'))
-    if ring:
-        keyboard.add(create_button('💍'))
-    if rings_choose:
-        global rings #TODO: Consider switching to local
-        for ring in rings:
-            keyboard.add(create_button(ring))
-    if rings_size_choose:
-        if len(sizes_current) > 0:
-            for size in sizes_current:
+    if category_choose:
+        if len(jewelry) > 0:
+            for category in jewelry:
+                keyboard.add(create_button(category))
+                # keyboard.add(create_button('💍')) TODO: rings
+    if model_choose:
+        if len(jewelry[category]) > 0:
+            for model in jewelry[category]:
+                keyboard.add(create_button(model))
+    if size_choose:
+        if len(jewelry[category][model]) > 0:
+            for size in jewelry[category][model]:
                 keyboard.add(create_button(size))
+
     return keyboard
 
 def is_float(s):
@@ -192,19 +197,29 @@ def is_float(s):
 # Buttons callback
 @jewelcrafter.callback_query_handler(func=lambda call: True)
 async def handle_callback(call):
-    global console, _debug, rings
+    global console, _debug, jewelry
     if _debug: print(f'\n{call}')
     if call.data == ('🎲'):
         await jewelcrafter.send_dice(call.message.chat.id, emoji='🎲')
         await jewelcrafter.delete_message(call.message.chat.id, call.message.message_id)
-    if call.data == ('💍'):
-        await jewelcrafter.send_message(call.message.chat.id, 'Выберите кольцо', reply_markup=keyboard(rings_choose=True))
-        #await jewelcrafter.delete_message(call.message.chat.id, call.message.message_id)
+    #if call.data == ('💍'):
+    if call.data in jewelry:
+        await jewelcrafter.send_message(call.message.chat.id, 'Выберите модель', reply_markup=keyboard(model_choose=True, category=call.data))
+        await jewelcrafter.delete_message(call.message.chat.id, call.message.message_id)
+        return
+    
+    for category in jewelry:
+        if call.data in jewelry[category]:
+            await jewelcrafter.send_message(call.message.chat.id, 'Выберите размер', reply_markup=keyboard(size_choose=True, category=category, model=call.data))
+            await jewelcrafter.delete_message(call.message.chat.id, call.message.message_id)
+            return
+    
+    print (f'\nUser: {call.from_user}')
+    print (f'Reply: {call.message.reply_markup.to_dict()}')
 
-    if call.data in rings:
-        sizes = rings[call.data]
-        sizes_current = []
-        
+    await jewelcrafter.send_message(call.message.chat.id, f'{call.from_user.first_name} {call.from_user.username} {call.from_user.last_name} выбрал {call.message.reply_markup.to_dict()["inline_keyboard"]}')
+
+'''
         for size in sizes:
             print(f'\nsize: {size}')
             if is_float(size) or size.isdigit():
@@ -215,24 +230,23 @@ async def handle_callback(call):
 
         await jewelcrafter.send_message(call.message.chat.id, f'Выберите размер', reply_markup=keyboard(rings_size_choose=True, sizes_current = sizes_current))
         await jewelcrafter.delete_message(call.message.chat.id, call.message.message_id)
+'''
 ### end of keyboard part
 
 # /start
 @jewelcrafter.message_handler(commands=['start'])
 async def start(message = None):
     jewelry = await search_for_jewelry(message)
-    await jewelcrafter.send_message(message.chat.id, f'Полный список файлов:\n{jewelry}')
+    # await jewelcrafter.send_message(message.chat.id, f'Полный список файлов:\n{jewelry}')
     await jewelcrafter.send_message(message.chat.id, 'Проверяем клавиатуру', reply_markup=keyboard(roll=True, ring=False))
     # await jewelcrafter.send_message(message.chat.id, 'Отправляю содержимое Ювелирки на почту')
 
-    # global rings
-    # rings = await search_for_rings(message)
-
-    # await jewelcrafter.send_message(message.chat.id, f'Полный список колец (сортировка / размеры):\n{rings}')
     await jewelcrafter.send_message(message.chat.id, f'Реклама.\nСтань профессональным трейдером: http://13-трейдеров.рф/\nПолучи счёт от 25.000$ до 400.000$ для торговли на биржах США.')
 
-    #await jewelcrafter.send_photo(message.chat.id, photo=open('.\pics\img-ring.jpeg', 'rb'),
-    #                              caption='Заказать кольцо',  reply_markup=keyboard())
+    # await jewelcrafter.send_message(message.chat.id, f'Выберите категорию', reply_markup=keyboard(category_choose=True, jewelry=jewelry))
+
+    await jewelcrafter.send_photo(message.chat.id, photo=open('.\pics\img-meteor.jpg', 'rb'),
+                                  caption=f'Выберите категорию',  reply_markup=keyboard(category_choose=True))
 
 # /restart
 @jewelcrafter.message_handler(commands=['restart'])
