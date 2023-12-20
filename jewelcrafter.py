@@ -93,7 +93,7 @@ async def search_for_jewelry(message):
                                         # file_data = file.read() We do not need to read file data, only name.
                                         # Here we have a final point to populate out jewelry dictionary.
                                         file_name = file.name
-                                        print(jewelry)
+                                        
                                         if not category in jewelry:
                                             jewelry = {f'{category}': {f'{model}': {f'{size}': [file_name]}}}
                                         else:
@@ -104,7 +104,6 @@ async def search_for_jewelry(message):
                                                     jewelry[f'{category}'][f'{model}'][f'{size}'] = [file_name]
                                                 else:
                                                     jewelry[f'{category}'][f'{model}'][f'{size}'].append(file_name)
-                                        print(jewelry)
                                         
     return jewelry
 
@@ -215,9 +214,9 @@ async def handle_callback(call):
             return
     
     print (f'\nUser: {call.from_user}')
-    print (f'Reply: {call.message.reply_markup.to_dict()}')
+    print (f'Reply: {call.data}')
 
-    await jewelcrafter.send_message(call.message.chat.id, f'{call.from_user.first_name} {call.from_user.username} {call.from_user.last_name} выбрал {call.message.reply_markup.to_dict()["inline_keyboard"]}')
+    await jewelcrafter.send_message(call.message.chat.id, f'{call.from_user.first_name} {call.from_user.username} {call.from_user.last_name} выбрал {call.data} размер')
 
 '''
         for size in sizes:
@@ -236,12 +235,16 @@ async def handle_callback(call):
 # /start
 @jewelcrafter.message_handler(commands=['start'])
 async def start(message = None):
+    global _debug
+    if _debug:
+        print(message)
+
     jewelry = await search_for_jewelry(message)
     # await jewelcrafter.send_message(message.chat.id, f'Полный список файлов:\n{jewelry}')
-    await jewelcrafter.send_message(message.chat.id, 'Проверяем клавиатуру', reply_markup=keyboard(roll=True, ring=False))
+    # await jewelcrafter.send_message(message.chat.id, 'Проверяем клавиатуру', reply_markup=keyboard(roll=True, ring=False))
     # await jewelcrafter.send_message(message.chat.id, 'Отправляю содержимое Ювелирки на почту')
 
-    await jewelcrafter.send_message(message.chat.id, f'Реклама.\nСтань профессональным трейдером: http://13-трейдеров.рф/\nПолучи счёт от 25.000$ до 400.000$ для торговли на биржах США.')
+    # await jewelcrafter.send_message(message.chat.id, f'Реклама.\nСтань профессональным трейдером: http://13-трейдеров.рф/\nПолучи счёт от 25.000$ до 400.000$ для торговли на биржах США.')
 
     # await jewelcrafter.send_message(message.chat.id, f'Выберите категорию', reply_markup=keyboard(category_choose=True, jewelry=jewelry))
 
