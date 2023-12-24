@@ -24,10 +24,12 @@ global Windows
 #from window import keyboard, kbd # kbd hacks
 #from window import current_time
 
-global Allowed, Requests, Admins
-Allowed = [] # Chats where bot is allowed to talk and delete messages
-Requests = {} # Input requests from { 'chat.id' : '' }
+global Allowed, Admins, Orders#, Requests
+# Requests = {} # Input requests from { 'chat.id' : '' }
+
 Admins = [1194526536, 317386736]
+Allowed = [] # Chats where bot is allowed to talk and delete messages
+Orders = {} # Order { 'id' : [ 'user', 'category', 'model', 'size', 'status' }
 
 # Creating global bot
 global jewelcrafter
@@ -197,27 +199,40 @@ def is_float(s):
 # Buttons callback
 @jewelcrafter.callback_query_handler(func=lambda call: True)
 async def handle_callback(call):
-    global console, _debug, jewelry
+    global console, _debug, jewelry, Orders
     if _debug: print(f'\n{call}')
     if call.data == ('🎲'):
         await jewelcrafter.send_dice(call.message.chat.id, emoji='🎲')
         await jewelcrafter.delete_message(call.message.chat.id, call.message.message_id)
     #if call.data == ('💍'):
     if call.data in jewelry:
+        # Создаём новый ордер, выбрали категорию
+        # Order { 'id' : { 'user', 'category', 'model', 'size', 'status' }
+        Orders[len(Orders)+1] =  { 'user': f'{call.message.chat.id}', 'category': f'{call.data}', 'status': 0 }
+        print(f'\nOrders: {Orders}')
+
+        # Выбираем модель
         await jewelcrafter.send_message(call.message.chat.id, 'Выберите модель', reply_markup=keyboard(model_choose=True, category=call.data))
         await jewelcrafter.delete_message(call.message.chat.id, call.message.message_id)
         return
     
     for category in jewelry:
         if call.data in jewelry[category]:
+            # Выбрали модель, запрашиваем размер
+            Orders[len(Orders)]['model'] = call.data
+            print(f'\nOrders: {Orders}')
             await jewelcrafter.send_message(call.message.chat.id, 'Выберите размер', reply_markup=keyboard(size_choose=True, category=category, model=call.data))
             await jewelcrafter.delete_message(call.message.chat.id, call.message.message_id)
             return
-    
-    print (f'\nUser: {call.from_user}')
-    print (f'Reply: {call.data}')
 
-    await jewelcrafter.send_message(call.message.chat.id, f'{call.from_user.first_name} {call.from_user.username} {call.from_user.last_name} выбрал {call.data} размер')
+    Orders[len(Orders)]['size'] = call.data
+    print(f'\nOrders: {Orders}')
+    # Выбрали размер, завершаем ордер
+    await jewelcrafter.send_message(call.message.chat.id,
+                                    f'{call.from_user.first_name} {call.from_user.username} {call.from_user.last_name} - {Orders[len(Orders)]["user"]}\n'
+                                    f'Выбрал {Orders[len(Orders)]["category"]} > {Orders[len(Orders)]["model"]} > '
+                                    f'размер {Orders[len(Orders)]["size"]}')
+    await jewelcrafter.delete_message(call.message.chat.id, call.message.message_id)
 
 '''
         for size in sizes:
