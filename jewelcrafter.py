@@ -24,9 +24,10 @@ global Windows
 #from window import keyboard, kbd # kbd hacks
 #from window import current_time
 
-global Allowed, Requests
+global Allowed, Requests, Admins
 Allowed = [] # Chats where bot is allowed to talk and delete messages
 Requests = {} # Input requests from { 'chat.id' : '' }
+Admins = [1194526536, 317386736]
 
 # Creating global bot
 global jewelcrafter
@@ -235,26 +236,34 @@ async def handle_callback(call):
 # /start
 @jewelcrafter.message_handler(commands=['start'])
 async def start(message = None):
-    global _debug
+    global _debug, Admins
     if _debug:
         print(message)
 
-    jewelry = await search_for_jewelry(message)
-    # await jewelcrafter.send_message(message.chat.id, f'Полный список файлов:\n{jewelry}')
-    # await jewelcrafter.send_message(message.chat.id, 'Проверяем клавиатуру', reply_markup=keyboard(roll=True, ring=False))
-    # await jewelcrafter.send_message(message.chat.id, 'Отправляю содержимое Ювелирки на почту')
+    if message.chat.id in Admins:
+        jewelry = await search_for_jewelry(message)
+        # await jewelcrafter.send_message(message.chat.id, f'Полный список файлов:\n{jewelry}')
+        # await jewelcrafter.send_message(message.chat.id, 'Проверяем клавиатуру', reply_markup=keyboard(roll=True, ring=False))
+        # await jewelcrafter.send_message(message.chat.id, 'Отправляю содержимое Ювелирки на почту')
 
-    # await jewelcrafter.send_message(message.chat.id, f'Реклама.\nСтань профессональным трейдером: http://13-трейдеров.рф/\nПолучи счёт от 25.000$ до 400.000$ для торговли на биржах США.')
+        # await jewelcrafter.send_message(message.chat.id, f'Реклама.\nСтань профессональным трейдером: http://13-трейдеров.рф/\nПолучи счёт от 25.000$ до 400.000$ для торговли на биржах США.')
 
-    # await jewelcrafter.send_message(message.chat.id, f'Выберите категорию', reply_markup=keyboard(category_choose=True, jewelry=jewelry))
+        # await jewelcrafter.send_message(message.chat.id, f'Выберите категорию', reply_markup=keyboard(category_choose=True, jewelry=jewelry))
 
-    await jewelcrafter.send_photo(message.chat.id, photo=open('.\pics\img-meteor.jpg', 'rb'),
-                                  caption=f'Выберите категорию',  reply_markup=keyboard(category_choose=True))
+        await jewelcrafter.send_photo(message.chat.id, photo=open('.\pics\img-meteor.jpg', 'rb'),
+                                    caption=f'Выберите категорию',  reply_markup=keyboard(category_choose=True))
+    else:
+        await jewelcrafter.send_message(message.chat.id, 'Проверяем клавиатуру', reply_markup=keyboard(roll=True))
+        #TODO: Decline message
 
 # /restart
 @jewelcrafter.message_handler(commands=['restart'])
 async def restart(message = None):
-    os.execvp('python', ['python', sys.argv[0]])
+    global _debug, Admins
+    if _debug:
+        print(message)
+    if message.chat.id in Admins:
+        os.execvp('python', ['python', sys.argv[0]])
 
 '''
 # /update
