@@ -110,52 +110,6 @@ async def search_for_jewelry(message):
                                         
     return jewelry
 
-async def search_for_rings(message):
-    # Path to the main folder
-    main_folder = 'jewelcrafter\\rings'
-    rings_list = []
-    # Iterate through the ring names
-    for ring_name in os.listdir(main_folder):
-        ring_folder = os.path.join(main_folder, ring_name)
-        if os.path.isdir(ring_folder):
-            # Iterate through the sizes
-            for size in os.listdir(ring_folder):
-                sizes_list = []
-                size_folder = os.path.join(ring_folder, size)
-                if os.path.isdir(size_folder):
-                    # Read the contents of the final folder
-                    for file_name in os.listdir(size_folder):
-                        file_path = os.path.join(size_folder, file_name)
-                        if os.path.isfile(file_path):
-                            with open(file_path, 'rb') as file:
-                                file_name = file.name
-                                file_data = file.read()
-                                sizes_list.append((file_name, file_data))
-                                rings_list.append((ring_name, size, file_name))
-  
-                # Send the contents via email
-                await jewelcrafter.send_message(message.chat.id, f'НЕ Отправляю письмо... {size_folder}')
-
-                sender_email = config.sender_email
-                receiver_email = config.receiver_email
-                subject = f"Ювелирка {size_folder}"
-                body = "Пожалуйста найдите файлы во вложении к письму."
-                # await send_email_with_attachments(sender_email, receiver_email, subject, body, sizes_list)
-
-                print(f'Done... {len(sizes_list)} files')
-                await jewelcrafter.send_message(message.chat.id, f'Готово... {len(sizes_list)} файлов НЕ отправлено на почту {receiver_email}')
-
-    await jewelcrafter.send_message(message.chat.id, f'Полный список файлов:\n{rings_list}')
-    
-    rings = {}
-    for ring in rings_list:
-        if not ring[0] in rings:
-            rings[ring[0]] = list(ring[1:])
-        else:
-            rings[ring[0]].extend(list(ring[1:]))
-
-    return rings
-
 # Keyboard part.
 
 # Create a button
@@ -163,7 +117,8 @@ def create_button(emoji):
     return types.InlineKeyboardButton(text=f'{emoji}', callback_data=f'{emoji}')
 
 # Create a default keyboard
-def keyboard(roll=False, web=False, ring=False, category_choose=False, model_choose=False, category = '', size_choose=False, model = ''):
+def keyboard(roll=False, web=False, ring=False, category_choose=False, model_choose=False, category = '',
+             size_choose=False, model = '', confirm_order = False):
     global jewelry
     # Create an inline keyboard
     keyboard = types.InlineKeyboardMarkup()
@@ -185,7 +140,9 @@ def keyboard(roll=False, web=False, ring=False, category_choose=False, model_cho
         if len(jewelry[category][model]) > 0:
             for size in jewelry[category][model]:
                 keyboard.add(create_button(size))
-
+    if confirm_order:
+        keyboard.add(create_button('✅'))
+        keyboard.add(create_button('❌'))
     return keyboard
 
 def is_float(s):
@@ -196,14 +153,73 @@ def is_float(s):
         return True
     return False
 
+
+'''        
+
+                        
+  
+
+
+
+
+                print(f'Done... {len(sizes_list)} files')
+                await jewelcrafter.send_message(message.chat.id, f'Готово... {len(sizes_list)} файлов НЕ отправлено на почту {receiver_email}')
+
+        await jewelcrafter.send_message(message.chat.id, f'Полный список файлов:\n{rings_list}')
+'''
+
 # Buttons callback
 @jewelcrafter.callback_query_handler(func=lambda call: True)
 async def handle_callback(call):
     global console, _debug, jewelry, Orders
     if _debug: print(f'\n{call}')
+
+    if call.data == ('✅'):
+        # Отправляем заказ
+        Orders[len(Orders)]['status'] = 1
+        await jewelcrafter.send_message(call.message.chat.id, Orders[len(Orders)])
+        await jewelcrafter.delete_message(call.message.chat.id, call.message.message_id)
+
+        main_folder = os.path.join('jewelcrafter', Orders[len(Orders)]['category'],
+                                   Orders[len(Orders)]['model'], Orders[len(Orders)]['size'])
+
+        files = []
+        if os.path.isdir(main_folder):
+            # Read the contents of the final folder
+            for file_name in os.listdir(main_folder):
+                file_path = os.path.join(main_folder, file_name)
+                if os.path.isfile(file_path):
+                    with open(file_path, 'rb') as file:
+                        file_name = file.name
+                        file_data = file.read()
+                        files.append((file_name, file_data))
+
+        # Send the contents via email
+        sender_email = config.sender_email
+        receiver_email = config.receiver_email
+        subject = f"Новый заказ: Ювелирка" # TODO: Change subject
+        body = "Пожалуйста найдите файлы во вложении к письму."
+        
+        await jewelcrafter.send_message(call.message.chat.id, f'Отправляю письмо от {sender_email} к {receiver_email} с вложениями...')
+        for file in files:
+            await jewelcrafter.send_message(call.message.chat.id, f'{file[0]}')
+        
+        await send_email_with_attachments(sender_email, receiver_email, subject, body, files)
+        await jewelcrafter.send_message(call.message.chat.id, f'Отправлено ✅')
+        return
+
+    if call.data == ('❌'):
+        # Отменяем заказ
+        Orders[len(Orders)]['status'] = -1
+        await jewelcrafter.send_message(call.message.chat.id, Orders[len(Orders)])
+        await jewelcrafter.delete_message(call.message.chat.id, call.message.message_id)
+        return
+    
     if call.data == ('🎲'):
         await jewelcrafter.send_dice(call.message.chat.id, emoji='🎲')
         await jewelcrafter.delete_message(call.message.chat.id, call.message.message_id)
+        return
+    
     #if call.data == ('💍'):
     if call.data in jewelry:
         # Создаём новый ордер, выбрали категорию
@@ -231,7 +247,7 @@ async def handle_callback(call):
     await jewelcrafter.send_message(call.message.chat.id,
                                     f'{call.from_user.first_name} {call.from_user.username} {call.from_user.last_name} - {Orders[len(Orders)]["user"]}\n'
                                     f'Выбрал {Orders[len(Orders)]["category"]} > {Orders[len(Orders)]["model"]} > '
-                                    f'размер {Orders[len(Orders)]["size"]}')
+                                    f'размер {Orders[len(Orders)]["size"]} \nОтправляем заказ?', reply_markup=keyboard(confirm_order=True))
     await jewelcrafter.delete_message(call.message.chat.id, call.message.message_id)
 
 '''
